@@ -1,5 +1,6 @@
 from collections import namedtuple
 
+from conans.errors import ConanException
 from conans.model.recipe_ref import Version
 
 
@@ -8,19 +9,19 @@ _Condition = namedtuple("_Condition", ["operator", "version"])
 
 class _ConditionSet:
 
-    def __init__(self, expression, prerelease):
-        expressions = expression.split()
+    def __init__(self, original_expression, prerelease):
+        original_expression = original_expression.split()
         self.prerelease = prerelease
         self.conditions = []
-        for e in expressions:
+        for e in original_expression:
             e = e.strip()
             if e[-1] == "-":  # Include pre-releases
                 e = e[:-1]
                 self.prerelease = True
-            self.conditions.extend(self._parse_expression(e))
+            self.conditions.extend(self._parse_expression(e, original_expression))
 
     @staticmethod
-    def _parse_expression(expression):
+    def _parse_expression(expression, original_expression):
         if expression == "" or expression == "*":
             return [_Condition(">=", Version("0.0.0"))]
 
@@ -35,6 +36,8 @@ class _ConditionSet:
                 operator += "="
                 index = 2
         version = expression[index:]
+        if version == "":
+            raise ConanException(f"Error parsing version range {expression}")
         if operator == "~":  # tilde minor
             v = Version(version)
             index = 1 if len(v.main) > 1 else 0
