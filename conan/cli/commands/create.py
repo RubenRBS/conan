@@ -80,8 +80,10 @@ def create(conan_api, parser, *args):
         deps_graph.report_graph_error()
 
         out.title("Computing necessary packages")
-        # Not specified, force build the tested library
+
         build_modes = [ref.repr_notime()] if args.build is None else args.build
+        if not any([modes in ref.repr_notime() for modes in build_modes]):
+            build_modes.append(ref.repr_notime())
         conan_api.graph.analyze_binaries(deps_graph, build_modes, remotes=remotes,
                                          update=args.update, lockfile=lockfile)
         print_graph_packages(deps_graph)
