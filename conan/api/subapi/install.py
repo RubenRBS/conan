@@ -1,3 +1,4 @@
+from conan.api.output import ConanOutput
 from conan.api.subapi import api_method
 from conan.internal.conan_app import ConanApp
 from conan.internal.deploy import do_deploys
@@ -68,6 +69,7 @@ class InstallAPI:
         if deploy:
             base_folder = conanfile.folders.base_build
             mkdir(base_folder)
+            ConanOutput().title("Running deployers")
             do_deploys(self.conan_api, deps_graph, deploy, base_folder)
 
         conanfile.generators = list(set(conanfile.generators).union(generators or []))

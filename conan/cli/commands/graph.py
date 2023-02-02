@@ -164,6 +164,7 @@ def graph_info(conan_api, parser, subparser, *args):
                                                       clean=args.lockfile_clean)
         conan_api.lockfile.save_lockfile(lockfile, args.lockfile_out, os.getcwd())
         if args.deploy:
+            ConanOutput().title("Running deployers")
             base_folder = os.getcwd()
             do_deploys(conan_api, deps_graph, args.deploy, base_folder)
 
