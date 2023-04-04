@@ -55,8 +55,8 @@ def _evaluate(prop_name, prop_value, binary_info):
         return (_prop_value == setting_value) or (_prop_value == "None" and setting_value is None)
 
     # TODO: Necessary to generalize this query evaluation to include all possible fields
-    info_settings = binary_info.get("settings")
-    info_options = binary_info.get("options")
+    info_settings = binary_info.get("settings", {})
+    info_options = binary_info.get("options", {})
 
     if not prop_name.startswith("options."):
         return compatible_prop(info_settings.get(prop_name, None), prop_value)

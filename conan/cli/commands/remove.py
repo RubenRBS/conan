@@ -1,5 +1,6 @@
 from conan.api.conan_api import ConanAPI
 from conan.api.model import ListPattern
+from conan.api.output import ConanOutput
 from conan.cli.command import conan_command, OnceArgument
 from conans.client.userio import UserInput
 
@@ -36,10 +37,13 @@ def remove(conan_api: ConanAPI, parser, *args):
     select_bundle = conan_api.list.select(ref_pattern, args.package_query, remote)
 
     if ref_pattern.package_id is None:
-        for ref, _ in select_bundle.refs():
-            if confirmation("Remove the recipe and all the packages of '{}'?"
-                            "".format(ref.repr_notime())):
-                conan_api.remove.recipe(ref, remote=remote)
+        if args.package_query is not None:
+            ConanOutput().error("--package-query was supplied, but pattern does not contain a package reference")
+        else:
+            for ref, _ in select_bundle.refs():
+                if confirmation("Remove the recipe and all the packages of '{}'?"
+                                "".format(ref.repr_notime())):
+                    conan_api.remove.recipe(ref, remote=remote)
     else:
         for ref, ref_bundle in select_bundle.refs():
             for pref, _ in select_bundle.prefs(ref, ref_bundle):
