@@ -2204,6 +2204,7 @@ class Command(object):
                     return False
 
                 self._warn_python_version()
+                self._warn_conan_version()
 
                 if command in ["-h", "--help"]:
                     self._show_help()
