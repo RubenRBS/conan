@@ -4,6 +4,7 @@ import json
 import os
 import signal
 import sys
+import textwrap
 from argparse import ArgumentError
 from difflib import get_close_matches
 
@@ -2176,6 +2177,12 @@ class Command(object):
                                             "recommended to use Python >= 3.5 with Conan", width),
                               front=Color.BRIGHT_RED)
             self._out.writeln("*"*width, front=Color.BRIGHT_RED)
+
+    def _warn_conan_version(self):
+        width = 70
+        self._out.writeln(textwrap.fill("Conan 1 is on a deprecation path, "
+                                        "please consider migrating to Conan 2", width),
+                          front=Color.BRIGHT_YELLOW)
 
     def run(self, *args):
         """HIDDEN: entry point for executing commands, dispatcher to class
