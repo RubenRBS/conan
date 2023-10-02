@@ -1,4 +1,5 @@
 import os
+import tempfile
 import textwrap
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -326,7 +327,7 @@ class EnvVars:
 
     """
     def __init__(self, conanfile, values, scope):
-        self._values = values # {var_name: _EnvValue}, just a reference to the Environment
+        self._values = values  # {var_name: _EnvValue}, just a reference to the Environment
         self._conanfile = conanfile
         self._scope = scope
         self._subsystem = deduce_subsystem(conanfile, scope)
@@ -472,10 +473,18 @@ class EnvVars:
         open(file_location, "w", encoding="utf-16").write(content)
 
     def save_sh(self, file_location, generate_deactivate=True):
+        stored_paths = self._values.copy()
+
         filepath, filename = os.path.split(file_location)
-        deactivate_file = os.path.join(filepath, "deactivate_{}".format(filename))
+        tempfile.mkdtemp()
+        deactivate_fd, deactivate_name = tempfile.mkstemp()
+        tempdir = tempfile.gettempdir()
+        deactivate_file = os.path.join(tempdir, deactivate_name)
+
+        stored_paths["CONAN_DEACTIVATE_FILE"] = _EnvValue("CONAN_DEACTIVATE_FILE", deactivate_file)
+
+        deactivate_launcher = os.path.join(filepath, "deactivate_{}".format(filename))
         deactivate = textwrap.dedent("""\
-           echo "echo Restoring environment" > "{deactivate_file}"
            for v in {vars}
            do
                is_defined="true"
@@ -487,23 +496,38 @@ class EnvVars:
                    echo unset $v >> "{deactivate_file}"
                fi
            done
-           """.format(deactivate_file=deactivate_file, vars=" ".join(self._values.keys())))
+
+           echo 'is_defined="true"' > {deactivate_launcher}
+           echo 'value=$(printenv $CONAN_DEACTIVATE_FILE) || is_defined="" || true' >> {deactivate_launcher}
+           echo 'if [ -n "$CONAN_DEACTIVATE_FILE" ] || [ -n "$is_defined" ]' >> {deactivate_launcher}
+           echo 'then' >> {deactivate_launcher}
+           echo 'source $CONAN_DEACTIVATE_FILE' >> {deactivate_launcher}
+           echo 'fi' >> {deactivate_launcher}
+
+
+           """.format(deactivate_file=deactivate_file,
+                      deactivate_launcher=deactivate_launcher,
+                      vars=" ".join(stored_paths.keys())))
         capture = textwrap.dedent("""\
               {deactivate}
               """).format(deactivate=deactivate if generate_deactivate else "")
         result = [capture]
-        for varname, varvalues in self._values.items():
+        for varname, varvalues in stored_paths.items():
             value = varvalues.get_str("${name}", self._subsystem, pathsep=self._pathsep)
             value = value.replace('"', '\\"')
+            self._conanfile.output.info(f"{varname}={value}")
             if value:
+                self._conanfile.output.info(f"Adding export {varname}={value}")
                 result.append('export {}="{}"'.format(varname, value))
             else:
+                self._conanfile.output.info(f"Adding unset {varname}")
                 result.append('unset {}'.format(varname))
 
         content = "\n".join(result)
         content = relativize_generated_file(content, self._conanfile, "$script_folder")
         content = f'script_folder="{os.path.abspath(filepath)}"\n' + content
         save(file_location, content)
+        self._conanfile.output.info(f"Saving sh: {content}")
 
     def save_script(self, filename):
         """
