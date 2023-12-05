@@ -154,3 +154,40 @@ def cache_backup_upload(conan_api: ConanAPI, parser, subparser, *args):
     """
     files = conan_api.upload.get_backup_sources()
     conan_api.upload.upload_backup_sources(files)
+
+
+@conan_subcommand()
+def cache_backup_remove(conan_api: ConanAPI, parser, subparser, *args):
+    """
+    Remove all the source backups present in the cache
+    which only are present in the given reference
+    """
+    subparser.add_argument('pattern', nargs="?",
+                           help="A pattern in the form 'pkg/version#revision:package_id#revision', "
+                                "e.g: zlib/1.2.13:* means all backup sources for zlib/1.2.13. "
+                                "If revision is not specified, it is assumed latest one.")
+    subparser.add_argument('-p', '--package-query', default=None, action=OnceArgument,
+                        help="Only upload packages matching a specific query. e.g: os=Windows AND "
+                             "(arch=x86 OR compiler=gcc)")
+    subparser.add_argument("-l", "--list", help="Package list file")
+
+    args = parser.parse_args(*args)
+
+    if args.pattern is None and args.list is None:
+        raise ConanException("Missing pattern or package list file")
+    if args.pattern and args.list:
+        raise ConanException("Cannot define both the pattern and the package list file")
+    if args.package_query and args.list:
+        raise ConanException("Cannot define package-query and the package list file")
+    if args.list:
+        listfile = make_abs_path(args.list)
+        multi_package_list = MultiPackagesList.load(listfile)
+        package_list = multi_package_list["Local Cache"]
+    else:
+        ref_pattern = ListPattern(args.pattern, package_id="*", only_recipe=False)
+        package_list = conan_api.list.select(ref_pattern, package_query=args.package_query)
+
+    files = conan_api.upload.get_backup_sources(package_list)
+    print(files)
+
+
