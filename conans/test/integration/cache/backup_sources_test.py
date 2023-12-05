@@ -669,3 +669,51 @@ class TestDownloadCacheBackupSources:
         # This used to crash because we were trying to list a missing dir if only exports were made
         assert "[Errno 2] No such file or directory" not in self.client.out
         assert sha256 in os.listdir(http_server_base_folder_backup)
+
+    def test_backup_cache_remove(self):
+        mkdir(os.path.join(self.download_cache_folder, "s"))
+
+        http_server_base_folder_internet = os.path.join(self.file_server.store, "internet")
+        http_server_base_folder_backup = os.path.join(self.file_server.store, "backup")
+
+        sha256 = "315f5bdb76d078c43b8ac0064e4a0164612b1fce77c869345bfc94c75894edd3"
+        save(os.path.join(http_server_base_folder_internet, "myfile.txt"), "Hello, world!")
+
+        sha256_2 = "9bd95e1ccd2114d105f766ddb64499033ad507478dea8bcf92d8f45d99848a14"
+        save(os.path.join(http_server_base_folder_internet, "myfile2.txt"), "Hello, world! x2")
+
+        sha256_3 = "47a4ebd731db4052c01373b427b81522b4bc12e1bdd65a7cdefafc5467b834a7"
+        save(os.path.join(http_server_base_folder_internet, "myfile3.txt"), "Hello, world! x3")
+
+        conanfile = textwrap.dedent(f"""
+                   from conan import ConanFile
+                   from conan.tools.files import download
+                   class Pkg(ConanFile):
+                       def source(self):
+                           print(self.name)
+                           print(self.name is None)
+                           download(self, "{self.file_server.fake_url}/internet/myfile.txt", "myfile.txt",
+                                    sha256="{sha256}")
+                           if self.name is not None:
+                               print("second")
+                               download(self, "{self.file_server.fake_url}/internet/myfile2.txt", "myfile2.txt",
+                                   sha256="{sha256_2}")
+                               if self.name == "three":
+                                   print("third")
+                                   download(self, "{self.file_server.fake_url}/internet/myfile3.txt", "myfile3.txt",
+                                       sha256="{sha256_3}")
+                   """)
+
+        self.client.save(
+            {"global.conf": f"core.sources:download_cache={self.download_cache_folder}\n"
+                            f"core.sources:download_urls=['{self.file_server.fake_url}/backup/', 'origin']\n"
+                            f"core.sources:upload_url={self.file_server.fake_url}/backup/"},
+            path=self.client.cache.cache_folder)
+
+        self.client.save({"conanfile.py": conanfile})
+        self.client.run("source .")
+        self.client.run("create . --name=two --version=2.0")
+        self.client.run("create . --name=three --version=3.0")
+        self.client.run("cache backup-remove *")
+
+        assert len(os.listdir(self.download_cache_folder)) == 0
