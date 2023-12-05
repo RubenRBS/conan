@@ -274,6 +274,7 @@ def unzip(conanfile, filename, destination=".", keep_permissions=False, pattern=
     """
 
     output = conanfile.output
+    output.info(f"Unzipping {filename} to {destination}")
     if (filename.endswith(".tar.gz") or filename.endswith(".tgz") or
             filename.endswith(".tbz2") or filename.endswith(".tar.bz2") or
             filename.endswith(".tar")):
@@ -356,12 +357,17 @@ def unzip(conanfile, filename, destination=".", keep_permissions=False, pattern=
         output.writeln("")
 
 
-def untargz(filename, destination=".", pattern=None, strip_root=False):
+def untargz(filename, destination=".", pattern=None, strip_root=False, report_progress=False):
     # NOT EXPOSED at `conan.tools.files` but used in tests
     import tarfile
+    def _report_progress(members):
+        for member in members:
+            if report_progress:
+                print("")
+            yield member
     with tarfile.TarFile.open(filename, 'r:*') as tarredgzippedFile:
         if not pattern and not strip_root:
-            tarredgzippedFile.extractall(destination)
+            tarredgzippedFile.extractall(destination, _report_progress(tarredgzippedFile))
         else:
             members = tarredgzippedFile.getmembers()
 
@@ -386,7 +392,7 @@ def untargz(filename, destination=".", pattern=None, strip_root=False):
             if pattern:
                 members = list(filter(lambda m: fnmatch(m.name, pattern),
                                       tarredgzippedFile.getmembers()))
-            tarredgzippedFile.extractall(destination, members=members)
+            tarredgzippedFile.extractall(destination, members=_report_progress(members))
 
 
 def check_sha1(conanfile, file_path, signature):
