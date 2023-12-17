@@ -534,6 +534,40 @@ class TestBuildTrackHost:
         tc.run("create app", assert_error=assert_error)
         assert assert_msg in tc.out
 
+    @pytest.mark.parametrize("requires_tag,tool_requires_tag,fails", [
+        ("user/channel", "user/channel", False),
+        ("", "user/channel", True),
+        ("auser/achannel", "anotheruser/anotherchannel", True),
+    ])
+    def test_overriden_host_version_user_channel(self, requires_tag, tool_requires_tag, fails):
+        """
+        Make the tool_requires follow the regular require with the expression "<host_version>"
+        """
+        c = TestClient()
+        pkg = textwrap.dedent(f"""
+                    from conan import ConanFile
+                    class ProtoBuf(ConanFile):
+                        name = "pkg"
+                        version = "0.1"
+                        def requirements(self):
+                            self.requires("protobuf/1.0@{requires_tag}")
+                        def build_requirements(self):
+                            self.tool_requires("protobuf/<host_version>@{tool_requires_tag}")
+                    """)
+        c.save({"protobuf/conanfile.py": GenConanfile("protobuf"),
+                "pkg/conanfile.py": pkg})
+        tag = ""
+        if requires_tag:
+            user, group = requires_tag.split("/")
+            tag = f"--user={user} --channel={group}" if requires_tag else ""
+        c.run(f"create protobuf --version=1.0 {tag}")
+
+        c.run("create pkg", assert_error=fails)
+        if fails:
+            assert f"Package 'protobuf/1.0@{tool_requires_tag}' not resolved" in c.out
+        else:
+            assert "Package '39f6a091994d2d080081ea888d75ef65c1d04c8d' created" in c.out
+
 
 def test_build_missing_build_requires():
     c = TestClient()
