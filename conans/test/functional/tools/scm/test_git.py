@@ -28,7 +28,7 @@ class TestGitBasicCapture:
             def export(self):
                 git = Git(self, self.recipe_folder)
                 commit = git.get_commit()
-                repo_commit = git.get_commit(repo=True)
+                repo_commit = git.get_commit(repository=True)
                 url = git.get_remote_url()
                 self.output.info("URL: {}".format(url))
                 self.output.info("COMMIT: {}".format(commit))
@@ -42,7 +42,7 @@ class TestGitBasicCapture:
         """
         A local repo, without remote, will have commit, but no URL
         """
-        c = TestClient()
+        c = TestClient(light=True)
         c.save({"conanfile.py": self.conanfile})
         commit = c.init_git_repo()
         c.run("export .")
@@ -58,7 +58,7 @@ class TestGitBasicCapture:
         folder = temp_folder()
         url, commit = create_local_git_repo(files={"conanfile.py": self.conanfile}, folder=folder)
 
-        c = TestClient()
+        c = TestClient(light=True)
         c.run_command('git clone "{}" myclone'.format(folder))
         with c.chdir("myclone"):
             c.run("export .")
@@ -74,7 +74,7 @@ class TestGitBasicCapture:
         """
         url = git_create_bare_repo()
 
-        c = TestClient()
+        c = TestClient(light=True)
         c.run_command('git clone "{}" myclone'.format(url))
         with c.chdir("myclone"):
             c.save({"conanfile.py": self.conanfile + "\n# some coment!"})
@@ -97,7 +97,7 @@ class TestGitBasicCapture:
         A local repo, without remote, will have commit, but no URL, and sibling folders
         can be dirty, no prob
         """
-        c = TestClient()
+        c = TestClient(light=True)
         c.save({"subfolder/conanfile.py": self.conanfile,
                 "other/myfile.txt": "content"})
         commit = c.init_git_repo()
@@ -142,7 +142,7 @@ class TestGitCaptureSCM:
         A local repo, without remote, will provide its own URL to the export(),
         and if it has local changes, it will be marked as dirty, and raise an error
         """
-        c = TestClient()
+        c = TestClient(light=True)
         c.save({"conanfile.py": self.conanfile})
         commit = c.init_git_repo()
         c.run("export .")
@@ -161,7 +161,7 @@ class TestGitCaptureSCM:
         folder = temp_folder()
         url, commit = create_local_git_repo(files={"conanfile.py": self.conanfile}, folder=folder)
 
-        c = TestClient()
+        c = TestClient(light=True)
         c.run_command('git clone "{}" myclone'.format(folder))
         with c.chdir("myclone"):
             c.run("export .")
@@ -174,7 +174,7 @@ class TestGitCaptureSCM:
         """
         url = git_create_bare_repo()
 
-        c = TestClient()
+        c = TestClient(light=True)
         c.run_command('git clone "{}" myclone'.format(url))
         with c.chdir("myclone"):
             c.save({"conanfile.py": self.conanfile + "\n# some coment!"})
@@ -197,7 +197,7 @@ class TestGitCaptureSCM:
         """
         folder = temp_folder()
         url, commit = create_local_git_repo(files={"conanfile.py": self.conanfile}, folder=folder)
-        c = TestClient()
+        c = TestClient(light=True)
         with c.chdir(folder):
             c.run_command("git config --local status.branch true")
             c.run("export .")
@@ -211,7 +211,7 @@ class TestGitCaptureSCM:
         """
         folder = temp_folder()
         url, commit = create_local_git_repo(files={"conanfile.py": self.conanfile}, folder=folder)
-        c = TestClient()
+        c = TestClient(light=True)
         with c.chdir(folder):
             c.save(files={"some_header.h": "now the repo is dirty"})
             c.run_command("git config --local status.showUntrackedFiles no")
@@ -250,7 +250,7 @@ class TestGitBasicClone:
         save_files(path=folder, files={"src/myfile.h": "my2header2!"})
         git_add_changes_commit(folder=folder)
 
-        c = TestClient()
+        c = TestClient(light=True)
         c.save({"conanfile.py": self.conanfile.format(url=url, commit=commit)})
         c.run("create .")
         assert "pkg/0.1: MYCMAKE: mycmake" in c.out
@@ -300,7 +300,7 @@ class TestGitBasicClone:
         save_files(path=folder, files={"src/myfile.h": "my2header2!"})
         git_add_changes_commit(folder=folder)
 
-        c = TestClient()
+        c = TestClient(light=True)
         c.save({"conanfile.py": conanfile.format(url=url, commit=commit)})
         c.run("create .")
         assert "pkg/0.1: MYCMAKE: mycmake" in c.out
@@ -313,7 +313,7 @@ class TestGitBasicClone:
         url, commit = create_local_git_repo(files={"src/myfile.h": "myheader!",
                                                    "CMakeLists.txt": "mycmake"}, folder=folder)
 
-        c = TestClient()
+        c = TestClient(light=True)
         conanfile_win_bash = textwrap.dedent("""
             import os
             from conan import ConanFile
@@ -382,7 +382,7 @@ class TestGitShallowClone:
         save_files(path=folder, files={"src/myfile.h": "my2header2!"})
         git_add_changes_commit(folder=folder)
 
-        c = TestClient()
+        c = TestClient(light=True)
         c.save({"conanfile.py": self.conanfile.format(url=url, commit=commit)})
         c.run("create .")
         assert "pkg/0.1: MYCMAKE: mycmake" in c.out
@@ -425,7 +425,7 @@ class TestGitCloneWithArgs:
                                                    "CMakeLists.txt": "mycmake"}, folder=folder,
                                                    commits=3, branch="main", tags=["v1.2.3"])
 
-        c = TestClient()
+        c = TestClient(light=True)
         git_args = ['--branch', 'main']
         c.save({"conanfile.py": self.conanfile.format(url=url, commit=commit, args=str(git_args))})
         c.run("create .")
@@ -443,7 +443,7 @@ class TestGitCloneWithArgs:
         url, commit = create_local_git_repo(files={"src/myfile.h": "myheader!",
                                                    "CMakeLists.txt": "mycmake"}, folder=folder,
                                                    commits=3, branch="main", tags=["v1.2.3"])
-        c = TestClient()
+        c = TestClient(light=True)
         git_args = ['--branch', 'foobar']
         c.save({"conanfile.py": self.conanfile.format(url=url, commit=commit, args=str(git_args))})
         with pytest.raises(Exception):
@@ -497,7 +497,7 @@ class TestGitBasicSCMFlow:
                                                    "src/myfile.h": "myheader!",
                                                    "CMakeLists.txt": "mycmake"}, folder=folder)
 
-        c = TestClient(default_server_user=True)
+        c = TestClient(light=True, default_server_user=True)
         c.run_command('git clone "{}" .'.format(url))
         c.run("create .")
         assert "pkg/0.1: MYCMAKE: mycmake" in c.out
@@ -509,7 +509,7 @@ class TestGitBasicSCMFlow:
         git_add_changes_commit(folder=folder)
 
         # use another fresh client
-        c2 = TestClient(servers=c.servers)
+        c2 = TestClient(light=True, servers=c.servers)
         c2.run("install --requires=pkg/0.1@ --build=pkg*")
         assert "pkg/0.1: MYCMAKE: mycmake" in c2.out
         assert "pkg/0.1: MYFILE: myheader!" in c2.out
@@ -526,7 +526,7 @@ class TestGitBasicSCMFlow:
         remote URL and not the local
         """
         url = git_create_bare_repo()
-        c = TestClient(default_server_user=True)
+        c = TestClient(light=True, default_server_user=True)
         c.run_command('git clone "{}" .'.format(url))
         c.save({"conanfile.py": self.conanfile,
                 "src/myfile.h": "myheader!",
@@ -541,7 +541,7 @@ class TestGitBasicSCMFlow:
         rmdir(c.current_folder)  # Remove current folder to make sure things are not used from here
 
         # use another fresh client
-        c2 = TestClient(servers=c.servers)
+        c2 = TestClient(light=True, servers=c.servers)
         c2.run("install --requires=pkg/0.1@ --build=pkg*")
         assert "pkg/0.1: MYCMAKE: mycmake" in c2.out
         assert "pkg/0.1: MYFILE: myheader!" in c2.out
@@ -591,7 +591,7 @@ class TestGitBasicSCMFlowSubfolder:
                                                    "src/myfile.h": "myheader!",
                                                    "CMakeLists.txt": "mycmake"}, folder=folder)
 
-        c = TestClient(default_server_user=True)
+        c = TestClient(light=True, default_server_user=True)
         c.run_command('git clone "{}" .'.format(url))
         c.run("create conan")
         assert "pkg/0.1: MYCMAKE: mycmake" in c.out
@@ -603,7 +603,7 @@ class TestGitBasicSCMFlowSubfolder:
         git_add_changes_commit(folder=folder)
 
         # use another fresh client
-        c2 = TestClient(servers=c.servers)
+        c2 = TestClient(light=True, servers=c.servers)
         c2.run("install --requires=pkg/0.1@ --build=pkg*")
         assert "pkg/0.1: MYCMAKE: mycmake" in c2.out
         assert "pkg/0.1: MYFILE: myheader!" in c2.out
@@ -672,7 +672,7 @@ class TestGitMonorepoSCMFlow:
                                                    },
                                             folder=folder)
 
-        c = TestClient(default_server_user=True)
+        c = TestClient(light=True, default_server_user=True)
         c.run_command('git clone "{}" .'.format(url))
         c.run("create sub1")
         commit = re.search(r"CAPTURING COMMIT: (\S+)!!!", str(c.out)).group(1)
@@ -691,7 +691,7 @@ class TestGitMonorepoSCMFlow:
         c.run("upload * -c -r=default")
 
         # use another fresh client
-        c2 = TestClient(servers=c.servers)
+        c2 = TestClient(light=True, servers=c.servers)
         c2.run("install --requires=pkg2/0.1@ --build=*")
         assert "pkg1/0.1: Checkout: {}".format(commit) in c2.out
         assert "pkg1/0.1: MYCMAKE-BUILD: mycmake1!" in c2.out
@@ -815,7 +815,7 @@ class TestConanFileSubfolder:
         """
         A local repo, without remote, will have commit, but no URL
         """
-        c = TestClient()
+        c = TestClient(light=True)
         c.save({"conan/conanfile.py": self.conanfile,
                 "CMakeLists.txt": "mycmakelists",
                 "src/myfile.h": "myheader"})
@@ -842,7 +842,7 @@ class TestConanFileSubfolder:
                     self.output.info(git.run("--version"))
             """)
 
-        c = TestClient()
+        c = TestClient(light=True)
         c.save({"conan/conanfile.py": conanfile})
         c.init_git_repo()
         c.run("export conan")
@@ -874,7 +874,7 @@ class TestGitIncluded:
                     self.output.info("SOURCES_SUB: {}!!".format(sorted(os.listdir("sub"))))
             """)
 
-        c = TestClient()
+        c = TestClient(light=True)
         c.save({"conanfile.py": conanfile,
                 ".gitignore": "*.txt",
                 "myfile.txt": "test",
@@ -906,7 +906,7 @@ class TestGitIncluded:
                     self.output.info("SOURCES: {}!!".format(sorted(os.listdir("."))))
             """)
 
-        c = TestClient()
+        c = TestClient(light=True)
         c.save({"conanfile.py": conanfile,
                 ".gitignore": "*.txt",
                 "somefile": "some",
@@ -921,7 +921,7 @@ def test_capture_git_tag():
     """
     A local repo, without remote, will have commit, but no URL
     """
-    c = TestClient()
+    c = TestClient(light=True)
     conanfile = textwrap.dedent("""
         from conan import ConanFile
         from conan.tools.scm import Git
@@ -977,7 +977,7 @@ class TestGitShallowTagClone:
         folder = temp_folder()
         url, commit = create_local_git_repo(files={"conanfile.py": self.conanfile}, folder=folder)
 
-        c = TestClient()
+        c = TestClient(light=True)
         # Create a tag
         with c.chdir(folder):
             c.run_command('git tag 1.0.0')
@@ -998,7 +998,7 @@ class TestGitShallowTagClone:
         folder = temp_folder()
         url, commit = create_local_git_repo(files={"conanfile.py": self.conanfile}, folder=folder)
 
-        c = TestClient()
+        c = TestClient(light=True)
         # Create a tag
         with c.chdir(folder):
             c.run_command('git tag 1.0.0')
