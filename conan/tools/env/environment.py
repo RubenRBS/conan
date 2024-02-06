@@ -476,33 +476,35 @@ class EnvVars:
 
     def save_sh(self, file_location, generate_deactivate=True):
         filepath, filename = os.path.split(file_location)
-        deactivate_file = os.path.join(filepath, "deactivate_{}".format(filename))
-        deactivate = textwrap.dedent("""\
-           echo "echo Restoring environment" > "{deactivate_file}"
-           for v in {vars}
-           do
-               is_defined="true"
-               value=$(printenv $v) || is_defined="" || true
-               if [ -n "$value" ] || [ -n "$is_defined" ]
-               then
-                   echo export "$v='$value'" >> "{deactivate_file}"
-               else
-                   echo unset $v >> "{deactivate_file}"
-               fi
-           done
-           """.format(deactivate_file=deactivate_file, vars=" ".join(self._values.keys())))
-        capture = textwrap.dedent("""\
-              {deactivate}
-              """).format(deactivate=deactivate if generate_deactivate else "")
-        result = [capture]
-        for varname, varvalues in self._values.items():
+        values = self._values.copy()
+        values.update({"deactivate": _EnvValue("CONAN_DEACTIVATE_FILE", None)})
+        result = []
+        if generate_deactivate:
+            result.append(textwrap.dedent("""\
+                deactivation_file="/tmp/deactivate"
+                deactivate_conan() {{
+                    . $deactivation_file
+                }}
+                echo "echo Restoring environment" > $deactivation_file
+                for v in {vars}
+                do
+                    is_defined="true"
+                    value=$(printenv $v) || is_defined="" || true
+                    if [ -n "$value" ] || [ -n "$is_defined" ]
+                    then
+                        echo export "$v='$value'" >> $deactivation_file
+                    else
+                        echo unset $v >> $deactivation_file
+                    fi
+                done
+                """.format(vars=" ".join(values.keys()))))
+        for varname, varvalues in values.items():
             value = varvalues.get_str("${name}", self._subsystem, pathsep=self._pathsep)
             value = value.replace('"', '\\"')
             if value:
                 result.append('export {}="{}"'.format(varname, value))
             else:
                 result.append('unset {}'.format(varname))
-
         content = "\n".join(result)
         content = relativize_generated_file(content, self._conanfile, "$script_folder")
         content = f'script_folder="{os.path.abspath(filepath)}"\n' + content
