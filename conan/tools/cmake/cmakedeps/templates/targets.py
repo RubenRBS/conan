@@ -28,6 +28,10 @@ class TargetsTemplate(CMakeDepsFileTemplate):
         cmake_target_aliases = self.conanfile.cpp_info.\
             get_property("cmake_target_aliases") or []
 
+        if not isinstance(cmake_target_aliases, list):
+            # TODO: Error our? Warn? Or just silently fix?
+            cmake_target_aliases = [cmake_target_aliases]
+
         target = self.root_target_name
         cmake_target_aliases = {alias: target for alias in cmake_target_aliases}
 
