@@ -332,6 +332,12 @@ class _Component:
     def set_property(self, property_name, value):
         if self._properties is None:
             self._properties = {}
+        guarded_types = {
+            "cmake_target_alias": list,  # Tuples?
+            "pkg_config_alias": list,
+        }
+        if property_name in guarded_types and not isinstance(value, guarded_types[property_name]):
+            ConanOutput.warning(f"{property_name} must be a {guarded_types[property_name]}, not {type(value)}")
         self._properties[property_name] = value
 
     def get_property(self, property_name):
