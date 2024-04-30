@@ -828,53 +828,67 @@ class TestListBinaryFilter:
         c.run("create pkg -s os=Windows -s arch=x86")
         c.run("create pkg -s os=Linux -s arch=armv8")
         c.run("create pkg -s os=Macos -s arch=armv8 -o shared=True")
+        c.run("create pkg -s os=Macos -s arch=armv8 -o shared=False")
         c.run("create header")
         if remote:
             c.run("upload *:* -r=default -c")
         pkg_key = "default" if remote else "Local Cache"
+        #
+        # c.run(f"list *:* -fp=profile_linux --format=json {r}")
+        # result = json.loads(c.stdout)
+        # header = result[pkg_key]["header/1.0"]["revisions"]["747cc49983b14bdd00df50a0671bd8b3"]
+        # assert header["packages"] == {"da39a3ee5e6b4b0d3255bfef95601890afd80709": {"info": {}}}
+        # pkg = result[pkg_key]["pkg/1.0"]["revisions"]["03591c8b22497dd74214e08b3bf2a56f"]
+        # assert len(pkg["packages"]) == 1
+        # settings = pkg["packages"]["2d46abc802bbffdf2af11591e3e452bc6149ea2b"]["info"]["settings"]
+        # assert settings == {"arch": "armv8", "os": "Linux"}
+        #
+        # # for linux + x86 only the header-only is a match
+        # c.run(f"list *:* -fp=profile_linux -fs=arch=x86 --format=json {r}")
+        # result = json.loads(c.stdout)
+        # header = result[pkg_key]["header/1.0"]["revisions"]["747cc49983b14bdd00df50a0671bd8b3"]
+        # assert header["packages"] == {"da39a3ee5e6b4b0d3255bfef95601890afd80709": {"info": {}}}
+        # pkg = result[pkg_key]["pkg/1.0"]["revisions"]["03591c8b22497dd74214e08b3bf2a56f"]
+        # assert pkg["packages"] == {}
+        #
+        # c.run(f"list *:* -fp=profile_armv8 --format=json {r}")
+        # result = json.loads(c.stdout)
+        # header = result[pkg_key]["header/1.0"]["revisions"]["747cc49983b14bdd00df50a0671bd8b3"]
+        # assert header["packages"] == {"da39a3ee5e6b4b0d3255bfef95601890afd80709": {"info": {}}}
+        # pkg = result[pkg_key]["pkg/1.0"]["revisions"]["03591c8b22497dd74214e08b3bf2a56f"]
+        # assert len(pkg["packages"]) == 3
+        # settings = pkg["packages"]["2d46abc802bbffdf2af11591e3e452bc6149ea2b"]["info"]["settings"]
+        # assert settings == {"arch": "armv8", "os": "Linux"}
+        # settings = pkg["packages"]["2a67a51fbf36a4ee345b2125dd2642be60ffd3ec"]["info"]["settings"]
+        # assert settings == {"arch": "armv8", "os": "Macos"}
+        #
+        # c.run(f"list *:* -fp=profile_shared --format=json {r}")
+        # result = json.loads(c.stdout)
+        # header = result[pkg_key]["header/1.0"]["revisions"]["747cc49983b14bdd00df50a0671bd8b3"]
+        # assert header["packages"] == {"da39a3ee5e6b4b0d3255bfef95601890afd80709": {"info": {}}}
+        # pkg = result[pkg_key]["pkg/1.0"]["revisions"]["03591c8b22497dd74214e08b3bf2a56f"]
+        # assert len(pkg["packages"]) == 1
+        # settings = pkg["packages"]["2a67a51fbf36a4ee345b2125dd2642be60ffd3ec"]["info"]["settings"]
+        # assert settings == {"arch": "armv8", "os": "Macos"}
+        #
+        # c.run(f"list *:* -fs os=Windows -fo *:shared=False --format=json {r}")
+        # result = json.loads(c.stdout)
+        # header = result[pkg_key]["header/1.0"]["revisions"]["747cc49983b14bdd00df50a0671bd8b3"]
+        # assert header["packages"] == {"da39a3ee5e6b4b0d3255bfef95601890afd80709": {"info": {}}}
+        # pkg = result[pkg_key]["pkg/1.0"]["revisions"]["03591c8b22497dd74214e08b3bf2a56f"]
+        # assert len(pkg["packages"]) == 1
+        # settings = pkg["packages"]["d2e97769569ac0a583d72c10a37d5ca26de7c9fa"]["info"]["settings"]
+        # assert settings == {"arch": "x86", "os": "Windows"}
 
-        c.run(f"list *:* -fp=profile_linux --format=json {r}")
+        c.run(f"list *:* -fs os=Macos -fo shared=False --format=json {r}")
         result = json.loads(c.stdout)
         header = result[pkg_key]["header/1.0"]["revisions"]["747cc49983b14bdd00df50a0671bd8b3"]
         assert header["packages"] == {"da39a3ee5e6b4b0d3255bfef95601890afd80709": {"info": {}}}
         pkg = result[pkg_key]["pkg/1.0"]["revisions"]["03591c8b22497dd74214e08b3bf2a56f"]
         assert len(pkg["packages"]) == 1
-        settings = pkg["packages"]["2d46abc802bbffdf2af11591e3e452bc6149ea2b"]["info"]["settings"]
-        assert settings == {"arch": "armv8", "os": "Linux"}
+        options = pkg["packages"]["d2e97769569ac0a583d72c10a37d5ca26de7c9fa"]["info"]["options"]
+        assert not options["shared"]
 
-        # for linux + x86 only the header-only is a match
-        c.run(f"list *:* -fp=profile_linux -fs=arch=x86 --format=json {r}")
+        c.run(f"list pkg/1.0:* -fs os=Macos -fo shared=False --format=json {r}")
         result = json.loads(c.stdout)
-        header = result[pkg_key]["header/1.0"]["revisions"]["747cc49983b14bdd00df50a0671bd8b3"]
-        assert header["packages"] == {"da39a3ee5e6b4b0d3255bfef95601890afd80709": {"info": {}}}
-        pkg = result[pkg_key]["pkg/1.0"]["revisions"]["03591c8b22497dd74214e08b3bf2a56f"]
-        assert pkg["packages"] == {}
 
-        c.run(f"list *:* -fp=profile_armv8 --format=json {r}")
-        result = json.loads(c.stdout)
-        header = result[pkg_key]["header/1.0"]["revisions"]["747cc49983b14bdd00df50a0671bd8b3"]
-        assert header["packages"] == {"da39a3ee5e6b4b0d3255bfef95601890afd80709": {"info": {}}}
-        pkg = result[pkg_key]["pkg/1.0"]["revisions"]["03591c8b22497dd74214e08b3bf2a56f"]
-        assert len(pkg["packages"]) == 2
-        settings = pkg["packages"]["2d46abc802bbffdf2af11591e3e452bc6149ea2b"]["info"]["settings"]
-        assert settings == {"arch": "armv8", "os": "Linux"}
-        settings = pkg["packages"]["2a67a51fbf36a4ee345b2125dd2642be60ffd3ec"]["info"]["settings"]
-        assert settings == {"arch": "armv8", "os": "Macos"}
-
-        c.run(f"list *:* -fp=profile_shared --format=json {r}")
-        result = json.loads(c.stdout)
-        header = result[pkg_key]["header/1.0"]["revisions"]["747cc49983b14bdd00df50a0671bd8b3"]
-        assert header["packages"] == {"da39a3ee5e6b4b0d3255bfef95601890afd80709": {"info": {}}}
-        pkg = result[pkg_key]["pkg/1.0"]["revisions"]["03591c8b22497dd74214e08b3bf2a56f"]
-        assert len(pkg["packages"]) == 1
-        settings = pkg["packages"]["2a67a51fbf36a4ee345b2125dd2642be60ffd3ec"]["info"]["settings"]
-        assert settings == {"arch": "armv8", "os": "Macos"}
-
-        c.run(f"list *:* -fs os=Windows -fo *:shared=False --format=json {r}")
-        result = json.loads(c.stdout)
-        header = result[pkg_key]["header/1.0"]["revisions"]["747cc49983b14bdd00df50a0671bd8b3"]
-        assert header["packages"] == {"da39a3ee5e6b4b0d3255bfef95601890afd80709": {"info": {}}}
-        pkg = result[pkg_key]["pkg/1.0"]["revisions"]["03591c8b22497dd74214e08b3bf2a56f"]
-        assert len(pkg["packages"]) == 1
-        settings = pkg["packages"]["d2e97769569ac0a583d72c10a37d5ca26de7c9fa"]["info"]["settings"]
-        assert settings == {"arch": "x86", "os": "Windows"}

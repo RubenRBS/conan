@@ -104,6 +104,8 @@ class ListAPI:
             options = data.get("options", {})
             for k, v in options.items():
                 for pattern, pattern_options in profile_options.items():
+                    if pattern is None:
+                        pattern = ref
                     if ref_matches(ref, pattern, None):
                         value = pattern_options.get_safe(k)
                         if value is not None and value != v:
