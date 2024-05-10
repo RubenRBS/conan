@@ -117,10 +117,11 @@ class CommandOutputer(object):
         for node in sorted(deps_graph.nodes):
             compact_nodes.setdefault((node.ref, node.package_id), []).append(node)
 
+        node_times = self._read_dates(deps_graph)
+
         build_time_nodes = deps_graph.build_time_nodes()
         remotes = self._cache.registry.load_remotes()
         ret = []
-
         for (ref, package_id), list_nodes in compact_nodes.items():
             node = list_nodes[0]
             if node.recipe == RECIPE_VIRTUAL:
@@ -203,7 +204,6 @@ class CommandOutputer(object):
                 if node.binary_remote:
                     item_data["binary_remote"] = node.binary_remote.name
 
-            node_times = self._read_dates(deps_graph)
             if node_times and node_times.get(ref, None):
                 item_data["creation_date"] = node_times.get(ref, None)
 
