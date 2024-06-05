@@ -85,3 +85,15 @@ def test_source_changes_generate_new_revisions():
     exported_rev_new = tc.exported_recipe_revision()
 
     assert exported_rev != exported_rev_new
+
+
+def test_genconanfile():
+    out = str(GenConanfile().with_extra_content(textwrap.dedent("""
+    def _my_custom_function(self):
+        self.output.info("Hello World!")
+    """))
+              .with_extra_content(textwrap.dedent("""
+              def build(self):
+                  self._my_custom_function()
+              """)))
+    print(out)

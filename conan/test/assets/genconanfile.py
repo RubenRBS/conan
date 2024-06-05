@@ -1,3 +1,5 @@
+import textwrap
+
 from conans.model.recipe_ref import RecipeReference
 
 
@@ -47,6 +49,7 @@ class GenConanfile(object):
         self._exports = None
         self._cmake_build = False
         self._class_attributes = None
+        self._extra_contents = None
 
     def with_package_type(self, value):
         self._package_type = value
@@ -245,6 +248,11 @@ class GenConanfile(object):
         """.with_class_attribute("no_copy_sources=True") """
         self._class_attributes = self._class_attributes or []
         self._class_attributes.append(attr)
+        return self
+
+    def with_extra_content(self, content):
+        self._extra_contents = self._extra_contents or []
+        self._extra_contents.append(content)
         return self
 
     @property
@@ -454,6 +462,10 @@ class GenConanfile(object):
         self._class_attributes = self._class_attributes or []
         return ["    {}".format(a) for a in self._class_attributes]
 
+    @property
+    def _extra_contents_render(self):
+        return textwrap.indent("\n".join(self._extra_contents), "    ")
+
     def __repr__(self):
         ret = []
         ret.extend(self._imports)
@@ -474,6 +486,8 @@ class GenConanfile(object):
                 ret.append("    {}".format(getattr(self, "_{}_render".format(member))))
 
         ret.extend(self._class_attributes_render)
+        if self._extra_contents:
+            ret.append(self._extra_contents_render)
         build = self._build_render
         if build is not None:
             ret.append("    {}".format(self._build_render))
