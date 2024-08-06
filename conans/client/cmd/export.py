@@ -4,7 +4,7 @@ import shutil
 from conan.tools.files import copy
 from conan.api.output import ConanOutput
 from conan.tools.scm import Git
-from conans.errors import ConanException, conanfile_exception_formatter
+from conans.errors import ConanException, conanfile_exception_formatter, conanfile_remove_attr
 from conans.model.manifest import FileTreeManifest
 from conans.model.recipe_ref import RecipeReference
 from conan.internal.paths import DATA_YML
@@ -174,18 +174,10 @@ def _run_method(conanfile, method):
     export_method = getattr(conanfile, method, None)
     if export_method:
         if not callable(export_method):
-            raise ConanException("conanfile '%s' must be a method" % method)
+            raise ConanException(f"conanfile '{method}' must be a method")
 
-        conanfile.output.highlight("Calling %s()" % method)
-        default_options = conanfile.default_options
-        options = conanfile.options
-        try:
-            # TODO: Poor man attribute control access. Convert to nice decorator
-            conanfile.default_options = None
-            conanfile.options = None
-            with chdir(conanfile.recipe_folder):
-                with conanfile_exception_formatter(conanfile, method):
+        conanfile.output.highlight(f"Calling {method}()")
+        with chdir(conanfile.recipe_folder):
+            with conanfile_exception_formatter(conanfile, method):
+                with conanfile_remove_attr(conanfile, ["options", "default_options"], method):
                     export_method()
-        finally:
-            conanfile.default_options = default_options
-            conanfile.options = options
