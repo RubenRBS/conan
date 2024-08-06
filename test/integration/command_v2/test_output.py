@@ -1,3 +1,5 @@
+import textwrap
+
 from conan.test.assets.genconanfile import GenConanfile
 from conan.test.utils.tools import TestClient
 from conan.test.utils.env import environment_update
@@ -16,6 +18,7 @@ class TestOutputLevel:
                  "self.output.verbose('This is a verbose')",
                  "self.output.info('This is a info')",
                  "self.output.highlight('This is a highlight')",
+                 "self.output.title('This is a title')",
                  "self.output.success('This is a success')",
                  "self.output.warning('This is a warning')",
                  "self.output.error('This is a error')",
@@ -136,10 +139,23 @@ class TestOutputLevel:
         assert "This is a debug" not in t.out
         assert "This is a verbose" not in t.out
         assert "This is a info" not in t.out
+        assert "This is a title" not in t.out
         assert "This is a highlight" not in t.out
         assert "This is a success" not in t.out
         assert "This is a warning" not in t.out
         assert "This is a error" in t.out
+
+        # Quiet
+        t.run("create . -vquiet")
+        assert "This is a trace" not in t.out
+        assert "This is a debug" not in t.out
+        assert "This is a verbose" not in t.out
+        assert "This is a info" not in t.out
+        assert "This is a title" not in t.out
+        assert "This is a highlight" not in t.out
+        assert "This is a success" not in t.out
+        assert "This is a warning" not in t.out
+        assert "This is a error" not in t.out
 
 
 def test_output_level_envvar():
@@ -253,3 +269,157 @@ class TestWarningHandling:
         t.run("create . -vquiet", assert_error=True)
         assert "ERROR: Tagged error" not in t.out
         assert "ConanException: Untagged error" not in t.out
+
+
+def test_custom_command_verbosity():
+    tc = TestClient(light=True)
+    tc.save_home({"extensions/commands/cmd_custom.py": textwrap.dedent("""
+    from conan.api.output import ConanOutput
+    from conan.cli.command import conan_command
+    from conans.model.recipe_ref import RecipeReference
+
+
+    @conan_command(group="Custom Command")
+    def custom(conan_api, parser, *args):
+        '''Custom command'''
+        output = ConanOutput()
+        output.trace('This is a trace')
+        output.debug('This is a debug')
+        output.verbose('This is a verbose')
+        output.info('This is a info')
+        output.highlight('This is a highlight')
+        output.title('This is a title')
+        output.success('This is a success')
+        output.warning('This is a warning')
+        output.error('This is a error')
+    """)})
+
+    # By default, it prints > info
+    tc.run("custom")
+    assert "This is a trace" not in tc.out
+    assert "This is a debug" not in tc.out
+    assert "This is a verbose" not in tc.out
+    assert "This is a info" in tc.out
+    assert "This is a highlight" in tc.out
+    assert "This is a success" in tc.out
+    assert "This is a warning" in tc.out
+    assert "This is a error" in tc.out
+
+    # Check if -v argument is equal to VERBOSE level
+    tc.run("custom -v")
+    assert "This is a trace" not in tc.out
+    assert "This is a debug" not in tc.out
+    assert "This is a verbose" in tc.out
+    assert "This is a info" in tc.out
+    assert "This is a highlight" in tc.out
+    assert "This is a success" in tc.out
+    assert "This is a warning" in tc.out
+    assert "This is a error" in tc.out
+
+    # Print also verbose traces
+    tc.run("custom -vverbose")
+    assert "This is a trace" not in tc.out
+    assert "This is a debug" not in tc.out
+    assert "This is a verbose" in tc.out
+    assert "This is a info" in tc.out
+    assert "This is a highlight" in tc.out
+    assert "This is a success" in tc.out
+    assert "This is a warning" in tc.out
+    assert "This is a error" in tc.out
+
+    # Print also debug traces
+    tc.run("custom -vv")
+    assert "This is a trace" not in tc.out
+    assert "This is a debug" in tc.out
+    assert "This is a verbose" in tc.out
+    assert "This is a info" in tc.out
+    assert "This is a highlight" in tc.out
+    assert "This is a success" in tc.out
+    assert "This is a warning" in tc.out
+    assert "This is a error" in tc.out
+    tc.run("custom -vdebug")
+    assert "This is a trace" not in tc.out
+    assert "This is a debug" in tc.out
+    assert "This is a verbose" in tc.out
+    assert "This is a info" in tc.out
+    assert "This is a highlight" in tc.out
+    assert "This is a success" in tc.out
+    assert "This is a warning" in tc.out
+    assert "This is a error" in tc.out
+
+    # Print also "trace" traces
+    tc.run("custom -vvv")
+    assert "This is a trace" in tc.out
+    assert "This is a debug" in tc.out
+    assert "This is a verbose" in tc.out
+    assert "This is a info" in tc.out
+    assert "This is a highlight" in tc.out
+    assert "This is a success" in tc.out
+    assert "This is a warning" in tc.out
+    assert "This is a error" in tc.out
+    tc.run("custom -vtrace")
+    assert "This is a trace" in tc.out
+    assert "This is a debug" in tc.out
+    assert "This is a verbose" in tc.out
+    assert "This is a info" in tc.out
+    assert "This is a highlight" in tc.out
+    assert "This is a success" in tc.out
+    assert "This is a warning" in tc.out
+    assert "This is a error" in tc.out
+
+    # With notice
+    tc.run("custom -vstatus")
+    assert "This is a trace" not in tc.out
+    assert "This is a debug" not in tc.out
+    assert "This is a verbose" not in tc.out
+    assert "This is a info" in tc.out
+    assert "This is a highlight" in tc.out
+    assert "This is a success" in tc.out
+    assert "This is a warning" in tc.out
+    assert "This is a error" in tc.out
+
+    # With notice
+    tc.run("custom -vnotice")
+    assert "This is a trace" not in tc.out
+    assert "This is a debug" not in tc.out
+    assert "This is a verbose" not in tc.out
+    assert "This is a info" not in tc.out
+    assert "This is a highlight" in tc.out
+    assert "This is a success" in tc.out
+    assert "This is a warning" in tc.out
+    assert "This is a error" in tc.out
+
+    # With warnings
+    tc.run("custom -vwarning")
+    assert "This is a trace" not in tc.out
+    assert "This is a debug" not in tc.out
+    assert "This is a verbose" not in tc.out
+    assert "This is a info" not in tc.out
+    assert "This is a highlight" not in tc.out
+    assert "This is a success" not in tc.out
+    assert "This is a warning" in tc.out
+    assert "This is a error" in tc.out
+
+    # With errors
+    tc.run("custom -verror")
+    assert "This is a trace" not in tc.out
+    assert "This is a debug" not in tc.out
+    assert "This is a verbose" not in tc.out
+    assert "This is a info" not in tc.out
+    assert "This is a title" not in tc.out
+    assert "This is a highlight" not in tc.out
+    assert "This is a success" not in tc.out
+    assert "This is a warning" not in tc.out
+    assert "This is a error" in tc.out
+
+    # Quiet
+    tc.run("custom -vquiet")
+    assert "This is a trace" not in tc.out
+    assert "This is a debug" not in tc.out
+    assert "This is a verbose" not in tc.out
+    assert "This is a info" not in tc.out
+    assert "This is a title" not in tc.out
+    assert "This is a highlight" not in tc.out
+    assert "This is a success" not in tc.out
+    assert "This is a warning" not in tc.out
+    assert "This is a error" not in tc.out
