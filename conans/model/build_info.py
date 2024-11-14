@@ -685,10 +685,13 @@ class CppInfo:
             return
         # Accumulate all external requires
         comps = self.required_components
-        missing_internal = [c[1] for c in comps if c[0] is None and c[1] not in self.components]
+        missing_internal = [(c[1], c[2]) for c in comps if c[0] is None and c[1] not in self.components]
         if missing_internal:
-            raise ConanException(f"{conanfile}: Internal components not found: {missing_internal}")
-        external = [c[0] for c in comps if c[0] is not None]
+            msgs = [f"'{req}'"
+                    + (f" (required from component '{req_comp}')" if req_comp else "")
+                    for req, req_comp in missing_internal]
+            raise ConanException(f"{conanfile}: Internal components not found: {', '.join(msgs)}")
+        external = [(c[0], c[2]) for c in comps if c[0] is not None]
         if not external:
             return
         # Only direct host (not test) dependencies can define required components
@@ -697,11 +700,13 @@ class CppInfo:
         direct_dependencies = [r.ref.name for r, d in conanfile.dependencies.items() if r.direct
                                and not r.build and not r.is_test and r.visible and not r.override]
 
-        for e in external:
+        for e, req_comp in external:
             if e not in direct_dependencies:
+                extra_msg = f" (required from component '{req_comp}')" if req_comp else ""
                 raise ConanException(
-                    f"{conanfile}: required component package '{e}::' not in dependencies")
+                    f"{conanfile}: required component package '{e}::'{extra_msg} not in dependencies")
         # TODO: discuss if there are cases that something is required but not transitive
+        external = [e[0] for e in external]
         for e in direct_dependencies:
             if e not in external:
                 raise ConanException(
@@ -709,17 +714,18 @@ class CppInfo:
 
     @property
     def required_components(self):
-        """Returns a list of tuples with (require, component_name) required by the package
-        If the require is internal (to another component), the require will be None"""
+        """Returns a list of tuples with (require, component_name, dependee_component_name) required by the package
+        - If the require is internal (to another component), the require will be None
+        - If the requirement comes from the main cpp_info, the dependee_component_name will be None"""
         # FIXME: Cache the value
         # First aggregate without repetition, respecting the order
-        ret = [r for r in self._package.requires]
-        for comp in self.components.values():
+        ret = [(r, None) for r in self._package.requires]
+        for comp_name, comp in self.components.items():
             for r in comp.requires:
                 if r not in ret:
-                    ret.append(r)
+                    ret.append((r, comp_name))
         # Then split the names
-        ret = [r.split("::") if "::" in r else (None, r) for r in ret]
+        ret = [(*r[0].split("::"), r[1]) if "::" in r[0] else (None, *r) for r in ret]
         return ret
 
     def deduce_full_cpp_info(self, conanfile):

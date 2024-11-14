@@ -239,7 +239,7 @@ class TargetConfigurationTemplate(CMakeDepsFileTemplate):
         # Declared cppinfo.requires or .components[].requires
         transitive_reqs = self.cmakedeps.get_transitive_requires(self.conanfile)
         if self.conanfile.cpp_info.required_components:
-            for dep_name, component_name in self.conanfile.cpp_info.required_components:
+            for dep_name, component_name, _ in self.conanfile.cpp_info.required_components:
                 try:
                     # if not dep_name, it is internal, from current self.conanfile
                     req = transitive_reqs[dep_name] if dep_name is not None else self.conanfile
