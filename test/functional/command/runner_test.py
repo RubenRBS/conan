@@ -2,6 +2,8 @@ import textwrap
 import os
 import pytest
 import docker
+
+from conan.test.assets.genconanfile import GenConanfile
 from conan.test.utils.tools import TestClient
 from conan.test.assets.cmake import gen_cmakelists
 from conan.test.assets.sources import gen_function_h, gen_function_cpp
@@ -540,4 +542,61 @@ def test_create_docker_runner_default_build_profile():
     assert "Restore: pkg/0.2" in client.out
     assert "Restore: pkg/0.2:8631cf963dbbb4d7a378a64a6fd1dc57558bc2fe" in client.out
     assert "Restore: pkg/0.2:8631cf963dbbb4d7a378a64a6fd1dc57558bc2fe metadata" in client.out
+    assert "Removing container" in client.out
+
+@pytest.mark.docker_runner
+@pytest.mark.skipif(docker_skip('ubuntu:22.04'), reason="Only docker running")
+def test_create_docker_runner_special_chars():
+    """
+    Tests the ``conan create . `` with special characters
+    """
+    client = TestClient()
+    profile_build = textwrap.dedent(f"""\
+    [settings]
+    arch={{{{ detect_api.detect_arch() }}}}
+    build_type=Release
+    compiler=gcc
+    compiler.cppstd=gnu17
+    compiler.libcxx=libstdc++11
+    compiler.version=11
+    os=Linux
+    """)
+
+    profile_host = textwrap.dedent(f"""\
+    [settings]
+    arch={{{{ detect_api.detect_arch() }}}}
+    build_type=Release
+    compiler=gcc
+    compiler.cppstd=gnu17
+    compiler.libcxx=libstdc++11
+    compiler.version=11
+    os=Linux
+    [runner]
+    type=docker
+    dockerfile={dockerfile_path()}
+    build_context={conan_base_path()}
+    image=conan-runner-default-test
+    cache=shared
+    remove=True
+    """)
+
+    client.save({"host": profile_host, "build": profile_build})
+    client.save({"conanfile.py": GenConanfile("lib", "0.1")
+                .with_option("shared", [True, False], False)
+                 .with_option("special", [None, "ANY"])
+                .with_option("special2", [None, "ANY"])
+                .with_option("special3", [None, "ANY"])
+                .with_option("special4", [None, "ANY"])
+                 .with_package("self.output.info(f'special={self.options.special}')",
+                               "self.output.info(f'special2={self.options.special2}')",
+                               "self.output.info(f'special3={self.options.special3}')",
+                               "self.output.info(f'special4={self.options.special4}')")})
+    client.run("create . -pr:h host -pr:b build -o=&:shared=True "
+    """-o special='1 2' -o"special2='3 4'" -o special3="5 6" -o="special4=7 8" """)
+
+    assert ":shared=True: command not found" not in client.out
+    assert "special=1 2" in client.out
+    assert "special2=3 4" in client.out
+    assert "special3=5 6" in client.out
+    assert "special4=7 8" in client.out
     assert "Removing container" in client.out
