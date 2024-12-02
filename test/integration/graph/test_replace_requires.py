@@ -240,6 +240,8 @@ def test_replace_requires_consumer_components_options():
             def build(self):
                 self.output.info(f"DEP ZLIB build: {self.dependencies['zlib'].ref.name}!")
             def package_info(self):
+                self.output.info(f"zlib in deps?: {'zlib' in self.dependencies}")
+                self.output.info(f"zlib-ng in deps?: {'zlib-ng' in self.dependencies}")
                 self.output.info(f"DEP ZLIB package_info: {self.dependencies['zlib'].ref.name}!")
                 self.cpp_info.requires = ["zlib::myzlib"]
         """)
@@ -275,3 +277,41 @@ def test_replace_requires_consumer_components_options():
     assert "app/0.1: DEP ZLIB build: zlib-ng!" in c.out
     assert "find_package(ZLIB)" in c.out
     assert "target_link_libraries(... ZLIB::ZLIB)" in c.out
+    assert "zlib in deps?: True" in c.out
+    assert "zlib-ng in deps?: False" in c.out
+
+
+def test_replace_requires_multiple():
+    conanfile = textwrap.dedent("""
+        from conan import ConanFile
+
+        class EpoxyConan(ConanFile):
+            name = "libepoxy"
+            version = "0.1"
+
+            def requirements(self):
+                self.requires("opengl/system")
+                self.requires("egl/system")
+
+            def generate(self):
+                for r, d in self.dependencies.items():
+                    self.output.info(f"DEP: {r.ref.name}: {d.ref.name}")
+
+            def package_info(self):
+                self.cpp_info.requires.append("opengl::opengl")
+                self.cpp_info.requires.append("egl::egl")
+        """)
+    profile = textwrap.dedent("""
+        [replace_requires]
+        opengl/system: libgl/1.0
+        egl/system: libgl/1.0
+        """)
+    c = TestClient()
+    c.save({"dep/conanfile.py": GenConanfile(),
+            "app/conanfile.py": conanfile,
+            "profile": profile})
+    c.run("create dep --name=libgl --version=1.0")
+    c.run("create app -pr=profile")
+    # There are actually 2 dependencies, pointing to the same node
+    assert "libepoxy/0.1: DEP: opengl: libgl" in c.out
+    assert "libepoxy/0.1: DEP: egl: libgl" in c.out

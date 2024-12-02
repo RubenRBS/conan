@@ -68,6 +68,7 @@ class Node(object):
         self.build_allowed = False
         self.is_conf = False
         self.replaced_requires = {}  # To track the replaced requires for self.dependencies[old-ref]
+        self.skipped_build_requires = False
 
     def __lt__(self, other):
         """
@@ -126,6 +127,11 @@ class Node(object):
             return
 
         down_require.defining_require = require.defining_require
+        # If the requirement propagates .files downstream, cannot be skipped
+        # But if the files are not needed in this graph branch, can be marked "Skip"
+        if down_require.files:
+            down_require.required_nodes = require.required_nodes.copy()
+        down_require.required_nodes.append(self)
         return d.src.propagate_downstream(down_require, node)
 
     def check_downstream_exists(self, require):
