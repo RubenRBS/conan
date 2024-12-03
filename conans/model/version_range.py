@@ -148,6 +148,9 @@ class _ConditionSet:
 class VersionRange:
     def __init__(self, expression):
         self._expression = expression
+        if not expression:
+            from conan.api.output import ConanOutput
+            ConanOutput().warning("Empty version range usage is discouraged", warn_tag="deprecated")
         tokens = expression.split(",")
         prereleases = False
         for t in tokens[1:]:
