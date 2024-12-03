@@ -150,7 +150,7 @@ class VersionRange:
         self._expression = expression
         if not expression:
             from conan.api.output import ConanOutput
-            ConanOutput().warning("Empty version range usage is discouraged", warn_tag="deprecated")
+            ConanOutput().warning("Empty version range usage is discouraged. Use [*] instead", warn_tag="deprecated")
         tokens = expression.split(",")
         prereleases = False
         for t in tokens[1:]:
