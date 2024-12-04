@@ -99,8 +99,12 @@ class ConanFileDependencies(UserRequirementsDict):
                 added_req.ref = RecipeReference.loads(old_req)
                 d[added_req] = existing
             # Now remove the replaced from dependencies dict
-            for new_req in node.replaced_requires.values():
-                d.pop(new_req, None)
+            for old_req, new_req in node.replaced_requires.items():
+                # But check we're not removing itself if old and new are the same ref
+                # Else we would delete the whole dependency
+                old_ref = RecipeReference.loads(old_req)
+                if old_ref.name != new_req.ref.name:
+                    d.pop(new_req, None)
         return ConanFileDependencies(d)
 
     def filter(self, require_filter, remove_system=True):
