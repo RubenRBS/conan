@@ -400,7 +400,7 @@ class Conf:
 
         :param name: Name of the configuration.
         """
-        self._values[name] = _ConfValue(name, None)
+        self._values.pop(name, None)
 
     def update(self, name, value):
         """
