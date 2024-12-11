@@ -327,22 +327,21 @@ def test_conf_scope_patterns_bad(scope, conf, assert_message):
         c.validate()
     assert assert_message in str(exc_info.value)
 
-@pytest.mark.parametrize("unset", [True, False])
-@pytest.mark.parametrize("choices", [
-    None,
-    ["Foo", "Bar"],
-    ["Foo", "Bar", None]
-])
-def test_unset_behaviour(unset, choices):
-    """
-    This tests cases where the value is unset and the choices parameter is used,
-    the behaviour used to differ between not setting it and unsetting it
-    """
 
+@pytest.mark.parametrize("choices", [None, ["Foo", "Bar"]])
+def test_unset_basic_same_behaviour(choices):
     c = ConfDefinition()
-    text = ""
-    if unset:
-        text = "user.company.cpu:jobs=!"
-    c.loads(text)
-
     assert c.get("user.company.cpu:jobs", choices=choices) is None
+
+    c2 = ConfDefinition()
+    c2.loads("user.company.cpu:jobs=!")
+    assert c2.get("user.company.cpu:jobs", choices=choices) is None
+
+    c3 = ConfDefinition()
+    c3.loads("user.company.cpu:jobs=4")
+
+    c4 = ConfDefinition()
+    c4.loads("user.company.cpu:jobs=!")
+    c3.update_conf_definition(c4)
+
+    assert c3.get("user.company.cpu:jobs", choices=choices) is None
