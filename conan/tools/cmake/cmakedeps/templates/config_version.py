@@ -26,6 +26,7 @@ class ConfigVersionTemplate(CMakeDepsFileTemplate):
         if policy not in ("AnyNewerVersion", "SameMajorVersion", "SameMinorVersion", "ExactVersion"):
             raise ConanException(f"Unknown cmake_config_version_compat={policy} in {self.conanfile}")
         version = self.cmakedeps.get_property("system_package_version", self.conanfile)
+        version = version or self.cmakedeps.get_property("cmake_config_version", self.conanfile)
         version = version or self.conanfile.ref.version
         return {"version": version,
                 "policy": policy}
