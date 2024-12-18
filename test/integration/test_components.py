@@ -153,7 +153,8 @@ def test_components_overrides():
 def test_duplication_component_properties():
     """ Regression for PR 17503 - component lists would be incorrectly aggregated """
     tc = TestClient(light=True)
-    tc.save({"dep/conanfile.py": textwrap.dedent("""
+
+    dep = textwrap.dedent("""
     from conan import ConanFile
 
     class Dep(ConanFile):
@@ -164,22 +165,25 @@ def test_duplication_component_properties():
             self.cpp_info.components["acomp"].set_property("prop_list", ["value1"])
             self.cpp_info.components["bcomp"].set_property("prop_list", ["value2"])
             self.cpp_info.components["ccomp"].set_property("prop_list", ["value3"])
-    """),
-             "conanfile.py": textwrap.dedent("""
-             from conan import ConanFile
+    """)
 
-             class Pkg(ConanFile):
-                 name = "pkg"
-                 version = "0.1"
-                 requires = "dep/0.1"
+    conanfile = textwrap.dedent("""
+    from conan import ConanFile
 
-                 def generate(self):
-                    # Calling this would break property lists of the last lex sorted component
-                    aggregated_components = self.dependencies["dep"].cpp_info.aggregated_components()
-                    ccomp = self.dependencies["dep"].cpp_info.components["ccomp"]
-                    self.output.info("ccomp list: " + str(ccomp.get_property("prop_list")))
+    class Pkg(ConanFile):
+        name = "pkg"
+        version = "0.1"
+        requires = "dep/0.1"
 
-             """)})
+        def generate(self):
+            # Calling this would break property lists of the last lex sorted component
+            aggregated_components = self.dependencies["dep"].cpp_info.aggregated_components()
+            ccomp = self.dependencies["dep"].cpp_info.components["ccomp"]
+            self.output.info("ccomp list: " + str(ccomp.get_property("prop_list")))
+    """)
+
+    tc.save({"dep/conanfile.py": dep,
+             "conanfile.py": conanfile})
     tc.run("create dep")
     tc.run("create .")
     # The bug would give ccomp the prop_list values of the other two components
