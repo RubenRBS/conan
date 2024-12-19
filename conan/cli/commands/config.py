@@ -1,3 +1,4 @@
+from conan.api.input import UserInput
 from conan.api.model import Remote
 from conan.api.output import cli_out_write
 from conan.cli.command import conan_command, conan_subcommand, OnceArgument
@@ -132,3 +133,16 @@ def config_show(conan_api, parser, subparser, *args):
     args = parser.parse_args(*args)
 
     return conan_api.config.show(args.pattern)
+
+
+@conan_subcommand()
+def config_clean(conan_api, parser, subparser, *args):
+    """
+    Clean the configuration files in the Conan home folder. (Keeping installed packages)
+    """
+    subparser.add_argument("-c", "--confirm", action='store_true',
+                           help="Do not request confirmation")
+    args = parser.parse_args(*args)
+    ui = UserInput(conan_api.config.get("core:non_interactive"))
+    if args.confirm or ui.request_boolean("Clear all configuration files?"):
+        conan_api.config.clean()

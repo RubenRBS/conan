@@ -188,3 +188,8 @@ class ConfigAPI:
             appending_recursive_dict_update(settings, settings_user)
 
         return Settings(settings)
+
+    def clean(self):
+        from conans.client.migrations import ClientMigrator
+        migrator = ClientMigrator(self.conan_api.cache_folder, conan_version)
+        migrator.clean()
