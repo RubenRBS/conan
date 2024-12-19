@@ -95,6 +95,58 @@ def test_build_require():
     assert "dpkg-query: no packages found matching non-existing2" in client.out
     assert "missing: ['non-existing1', 'non-existing2']" in client.out
 
+@pytest.mark.tool("brew")
+@pytest.mark.skipif(platform.system() != "Darwin", reason="Requires brew")
+def test_system_build_requirement():
+    tc = TestClient(light=True)
+    foo_conanfile = textwrap.dedent("""
+    from conan import ConanFile
+    from conan.tools.system.package_manager import Brew
+
+    class Foo(ConanFile):
+        name = "foo"
+        version = "1.0"
+
+        def system_build_requirements(self):
+            brew = Brew(self)
+            brew.install(["cmake"])
+    """)
+
+    tc.save({"foo/conanfile.py": foo_conanfile})
+    # This calls system_build_requirements
+    tc.run("create foo -b=missing")
+    assert "foo/1.0: System requirements" in tc.out
+
+    # But this does not
+    tc.run("install --requires=foo/1.0")
+    assert "foo/1.0: System requirements" not in tc.out
+    # This does
+    tc.run("install --requires=foo/1.0 -b='*'")
+    assert "foo/1.0: System requirements" in tc.out
+
+    # But this does not
+    tc.run("install foo")
+    assert "foo/1.0: System requirements" not in tc.out
+    # This does not either
+    tc.run("install foo -b='*'")
+    assert "foo/1.0: System requirements" not in tc.out
+
+    conanfile = textwrap.dedent("""
+    from conan import ConanFile
+
+    class Pkg(ConanFile):
+        name = "pkg"
+        version = "1.0"
+        requires = "foo/1.0"
+    """)
+
+    tc.save({"conanfile.py": conanfile})
+    tc.run("create . -b='*'")
+    assert "foo/1.0: System requirements" in tc.out
+
+    tc.run("create .")
+    assert "foo/1.0: System requirements" not in tc.out
+
 
 @pytest.mark.tool("brew")
 @pytest.mark.skipif(platform.system() != "Darwin", reason="Requires brew")
