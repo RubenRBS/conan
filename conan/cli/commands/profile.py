@@ -25,8 +25,11 @@ def profiles_list_cli_output(profiles):
 
 
 def _json_profiles(profiles):
-    result = {"host": profiles["host"].serialize(),
-              "build": profiles["build"].serialize()}
+    result = {}
+    if "host" in profiles:
+        result["host"] = profiles["host"].serialize()
+    if "build" in profiles:
+        result["build"] = profiles["build"].serialize()
     cli_out_write(json.dumps(result))
 
 
