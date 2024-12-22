@@ -93,3 +93,19 @@ class TestProfileDetectAPI:
         client.run("profile show -pr=profile1")
         sdk_version = detect_api.detect_sdk_version(sdk="macosx")
         assert f"os.sdk_version={sdk_version}" in client.out
+
+@pytest.mark.parametrize("context", [None, "host", "build"])
+def test_profile_show_aggregate_usecase(context):
+    tc = TestClient(light=True)
+
+    context_arg = f"--context {context}" if context else ""
+    tc.run(f'profile show {context_arg} -s:h="os=Windows" -s:b="os=Linux"')
+
+    if context in (None, "host"):
+        assert "Host profile:" not in tc.stdout
+        assert "Host profile:" in tc.stderr
+        assert "os=Windows" in tc.out
+    if context in (None, "build"):
+        assert "Build profile:" not in tc.stdout
+        assert "Build profile:" in tc.stderr
+        assert "os=Linux" in tc.out
