@@ -63,13 +63,12 @@ class TestProfileDetectAPI:
             """)
 
         client.save({"profile1": tpl1})
-        client.run("profile show -pr=profile1")
+        client.run("profile show -pr=profile1 --context=host")
         libc_name, libc_version = detect_api.detect_libc()
         assert libc_name is not None
         assert libc_version is not None
         _, version, _ = detect_api.detect_gcc_compiler()
         expected = textwrap.dedent(f"""\
-            Host profile:
             [settings]
             compiler=gcc
             compiler.version={version}
