@@ -30,11 +30,10 @@ class TestProfileDetectAPI:
             """)
 
         client.save({"profile1": tpl1})
-        client.run("profile show -pr=profile1")
+        client.run("profile show -pr=profile1 --context=host")
         #FIXME: check update setting
         update = str(int(detect_api.detect_msvc_update("194")) % 10)
         expected = textwrap.dedent(f"""\
-            Host profile:
             [settings]
             compiler=msvc
             compiler.cppstd=14
