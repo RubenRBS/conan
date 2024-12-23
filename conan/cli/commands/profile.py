@@ -39,7 +39,7 @@ def profile_show(conan_api, parser, subparser, *args):
     Show aggregated profiles from the passed arguments.
     """
     add_profiles_args(subparser)
-    subparser.add_argument("--context", choices=["host", "build"])
+    subparser.add_argument("-cx", "--context", choices=["host", "build"])
     args = parser.parse_args(*args)
     profiles = conan_api.profiles.get_profiles_from_args(args)
     result = {}
