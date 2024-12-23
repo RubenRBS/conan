@@ -246,7 +246,6 @@ class TestProfileDetectAPI:
         the_os = pr.settings['os']
         arch = pr.settings['arch']
         expected = textwrap.dedent(f"""\
-            Host profile:
             [settings]
             arch={arch}
             os={the_os}
