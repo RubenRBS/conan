@@ -201,3 +201,22 @@ def test_config_show():
     tc.run("config show zlib/*:foo")
     assert "zlib/*:user.mycategory:foo" in tc.out
     assert "zlib/*:user.myothercategory:foo" in tc.out
+
+
+def test_config_clean():
+    tc = TestClient(light=True)
+    tc.run("profile detect --name=foo")
+    tc.run("remote add bar http://fakeurl")
+    tc.save_home({"global.conf": "core.upload:retry=7\n",
+                  "extensions/compatibility/mycomp.py": "",
+                  "extensions/commands/cmd_foo.py": "",
+                  })
+    tc.run("config clean -c")
+    tc.run("profile list")
+    assert "foo" not in tc.out
+    tc.run("remote list")
+    assert "bar" not in tc.out
+    tc.run("config show core.upload:retry")
+    assert "7" not in tc.out
+    assert not os.path.exists(os.path.join(tc.cache_folder, "extensions"))
+
