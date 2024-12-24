@@ -191,6 +191,7 @@ class ConfigAPI:
 
     def migrate(self):
         # Migration system
+        # TODO: Still needs refactoring - using it here for now for tests
         from conans.client.migrations import ClientMigrator
         migrator = ClientMigrator(self.home(), conan_version)
         migrator.migrate()
