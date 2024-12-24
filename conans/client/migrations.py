@@ -61,16 +61,6 @@ class ClientMigrator(Migrator):
         if old_version is None or old_version < "2.4":
             _migrate_default_compatibility(self.cache_folder)
 
-    def clean(self):
-        # TODO: Check what we're deleting
-        contents = os.listdir(self.cache_folder)
-        for contents in contents:
-            # keep packages
-            if contents not in ("p", "version.txt"):
-                rmdir(os.path.join(self.cache_folder, contents))
-        # CHECK: This also generates a remotes.json that is not there after a conan profile show?
-        self._apply_migrations(None)
-
 
 def _migrate_default_compatibility(cache_folder):
     # just the back migration

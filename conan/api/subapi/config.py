@@ -20,7 +20,7 @@ from conans.model.conf import ConfDefinition, BUILT_IN_CONFS
 from conans.model.pkg_type import PackageType
 from conans.model.recipe_ref import RecipeReference
 from conans.model.settings import Settings
-from conans.util.files import load, save
+from conans.util.files import load, save, rmdir
 
 
 class ConfigAPI:
@@ -189,7 +189,18 @@ class ConfigAPI:
 
         return Settings(settings)
 
-    def clean(self):
+    def migrate(self):
+        # Migration system
         from conans.client.migrations import ClientMigrator
-        migrator = ClientMigrator(self.conan_api.cache_folder, conan_version)
-        migrator.clean()
+        migrator = ClientMigrator(self.home(), conan_version)
+        migrator.migrate()
+
+    def clean(self):
+        # TODO: Check what we're deleting
+        contents = os.listdir(self.home())
+        for contents in contents:
+            # keep packages
+            if contents not in ("p", "version.txt"):
+                rmdir(os.path.join(self.home(), contents))
+        # CHECK: This also generates a remotes.json that is not there after a conan profile show?
+        self.migrate()

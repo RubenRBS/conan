@@ -6,7 +6,6 @@ from conan.api.subapi.command import CommandAPI
 from conan.api.subapi.local import LocalAPI
 from conan.api.subapi.lockfile import LockfileAPI
 from conan.api.subapi.workspace import WorkspaceAPI
-from conan import conan_version
 from conan.api.subapi.config import ConfigAPI
 from conan.api.subapi.download import DownloadAPI
 from conan.api.subapi.export import ExportAPI
@@ -19,7 +18,6 @@ from conan.api.subapi.remotes import RemotesAPI
 from conan.api.subapi.remove import RemoveAPI
 from conan.api.subapi.search import SearchAPI
 from conan.api.subapi.upload import UploadAPI
-from conans.client.migrations import ClientMigrator
 from conan.errors import ConanException
 from conan.internal.paths import get_conan_user_home
 from conans.model.version_range import validate_conan_version
@@ -37,10 +35,11 @@ class ConanAPI:
         self.cache_folder = self.workspace.home_folder() or cache_folder or get_conan_user_home()
         self.home_folder = self.cache_folder  # Lets call it home, deprecate "cache"
 
-        # Migration system
-        migrator = ClientMigrator(self.cache_folder, conan_version)
-        migrator.migrate()
+        self.reinit()
 
+    def reinit(self):
+        self.config = ConfigAPI(self)
+        self.config.migrate()
         self.command = CommandAPI(self)
         self.remotes = RemotesAPI(self)
         # Search recipes by wildcard and packages filtering by configuracion
@@ -52,7 +51,6 @@ class ConanAPI:
         self.graph = GraphAPI(self)
         self.export = ExportAPI(self)
         self.remove = RemoveAPI(self)
-        self.config = ConfigAPI(self)
         self.new = NewAPI(self)
         self.upload = UploadAPI(self)
         self.download = DownloadAPI(self)
