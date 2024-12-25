@@ -706,3 +706,70 @@ class TestCompatibleBuild:
             pkga = liba["packages"][0][pkg_index]
             assert pkga["info"]["compatibility_delta"] == {"settings": [["compiler.cppstd", "14"]]}
             assert pkga["build_args"] == "--requires=liba/0.1 --build=compatible:liba/0.1"
+
+
+def test_compatibility_new_setting_forwards_compat():
+    """ This test tries to reflect the following scenario:
+    - User adds a new setting (libc.version in this case)
+    - This setting is forward compatible
+    How is it solved with compatibility.py? Like this:
+    """
+    settings_user_file = textwrap.dedent("""
+    libc_version: [1, 2, 3, 4, 5]
+    """)
+    tc = TestClient()
+    tc.save_home({"settings_user.yml": settings_user_file})
+    tc.save({
+        "dep/conanfile.py": GenConanfile("dep", "1.0")
+            .with_settings("compiler", "libc_version"),
+        "conanfile.py": GenConanfile("app", "1.0")
+            .with_settings("compiler", "libc_version")
+            .with_require("dep/1.0")
+    })
+    tc.run("create dep -s=libc_version=4")
+    dep_package_id = tc.created_package_id("dep/1.0")
+    tc.run("create . -s=libc_version=3", assert_error=True)
+    # We can't compile, because the dep is not compatible
+    assert "Missing prebuilt package for 'dep/1.0'" in tc.out
+
+    # Let's create a compatibility extensions
+    libc_compat = textwrap.dedent("""
+    from conan.tools.scm import Version
+
+    def libc_compat(conanfile):
+        # Do we have the setting?
+        libc_version = conanfile.settings.get_safe("libc_version")
+        if libc_version is None:
+            return []
+        available_libc_versions = conanfile.settings.libc_version.possible_values()
+        ret = []
+        for possible_libc_version in available_libc_versions:
+            if Version(possible_libc_version) >= Version(libc_version):
+                ret.append({"settings": [("libc_version", possible_libc_version)]})
+        return ret
+    """)
+
+    # And add it to the compatibility.py plugin
+    compatibility_plugin = textwrap.dedent("""
+    from cppstd_compat import cppstd_compat
+    from libc_compat import libc_compat
+
+    def compatibility(conanfile):
+        configs = cppstd_compat(conanfile)
+        libc_configs = libc_compat(conanfile)
+        # TODO: If we wanted to have a cross-product of all the compatibilities,
+        # a more involved logic would be needed here
+        configs.extend(libc_configs)
+        return configs
+    """)
+
+    tc.save_home({"extensions/plugins/compatibility/libc_compat.py": libc_compat,
+                  "extensions/plugins/compatibility/compatibility.py": compatibility_plugin})
+
+    # Now we try again, this time app will find the compatible dep with libc_version 4
+    tc.run("create . -s=libc_version=3")
+    assert f"dep/1.0: Found compatible package '{dep_package_id}': libc_version=4" in tc.out
+
+    # And now we try to create the app with libc_version 5, which is still not compatible
+    tc.run("create . -s=libc_version=5", assert_error=True)
+    assert "Missing prebuilt package for 'dep/1.0'" in tc.out
