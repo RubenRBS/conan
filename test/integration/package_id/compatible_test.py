@@ -715,12 +715,13 @@ def test_compatibility_new_setting_forwards_compat():
     How is it solved with compatibility.py? Like this:
     """
     settings_user_file = "libc_version: [1, 2, 3]"
-    tc = TestClient(light=True)
+    tc = TestClient()
     tc.save_home({"settings_user.yml": settings_user_file})
-    tc.save({"conanfile.py": GenConanfile("dep", "1.0").with_settings("libc_version")})
-    tc.run("create . -s=libc_version=2")
+    tc.save({"conanfile.py": GenConanfile("dep", "1.0")
+            .with_settings("libc_version", "compiler")})
+    tc.run("create . -s=libc_version=2 -s=compiler.cppstd=17")
     dep_package_id = tc.created_package_id("dep/1.0")
-    tc.run("install --requires=dep/1.0 -s=libc_version=3", assert_error=True)
+    tc.run("install --requires=dep/1.0 -s=libc_version=3 -s=compiler.cppstd=17", assert_error=True)
     # We can't compile, because the dep is not compatible
     assert "Missing prebuilt package for 'dep/1.0'" in tc.out
 
@@ -749,19 +750,34 @@ def test_compatibility_new_setting_forwards_compat():
     def compatibility(conanfile):
         configs = cppstd_compat(conanfile)
         libc_configs = libc_compat(conanfile)
-        # TODO: If we wanted to have a cross-product of all the compatibilities,
-        # a more involved logic would be needed here
-        configs.extend(libc_configs)
-        return configs
+        results = []
+        # First only the cppstd settings
+        for config in configs:
+            results.append(config)
+        # Now the libc settings by themselves
+        for libc_config in libc_configs:
+            results.append(libc_config)
+        # And now the combination of both
+        for config in configs:
+            for libc_config in libc_configs:
+                results.append({"settings": config["settings"] + libc_config["settings"]})
+        # Note that this generates a large number of results,
+        # And checking the servers might be slow until improvements are made in the API
+        return results
     """)
 
     tc.save_home({"extensions/plugins/compatibility/libc_compat.py": libc_compat,
                   "extensions/plugins/compatibility/compatibility.py": compatibility_plugin})
 
     # Now we try again, this time app will find the compatible dep with libc_version 2
-    tc.run("install --requires=dep/1.0 -s=libc_version=3")
-    assert f"dep/1.0: Found compatible package '{dep_package_id}': libc_version=2" in tc.out
+    tc.run("install --requires=dep/1.0 -s=libc_version=3 -s=compiler.cppstd=17")
+    assert f"dep/1.0: Found compatible package '{dep_package_id}'" in tc.out
 
     # And now we try to create the app with libc_version 1, which is still not compatible
-    tc.run("install --requires=dep/1.0 -s=libc_version=1", assert_error=True)
+    tc.run("install --requires=dep/1.0 -s=libc_version=1 -s=compiler.cppstd=17", assert_error=True)
     assert "Missing prebuilt package for 'dep/1.0'" in tc.out
+
+    # Now we try again, this time app will find the compatible dep with libc_version 2
+    # And see how we're also compatible over a different cppstd
+    tc.run("install --requires=dep/1.0 -s=libc_version=3 -s=compiler.cppstd=14")
+    assert f"dep/1.0: Found compatible package '{dep_package_id}': compiler.cppstd=17, libc_version=2" in tc.out
