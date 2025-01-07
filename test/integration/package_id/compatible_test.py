@@ -714,21 +714,13 @@ def test_compatibility_new_setting_forwards_compat():
     - This setting is forward compatible
     How is it solved with compatibility.py? Like this:
     """
-    settings_user_file = textwrap.dedent("""
-    libc_version: [1, 2, 3, 4, 5]
-    """)
-    tc = TestClient()
+    settings_user_file = "libc_version: [1, 2, 3]"
+    tc = TestClient(light=True)
     tc.save_home({"settings_user.yml": settings_user_file})
-    tc.save({
-        "dep/conanfile.py": GenConanfile("dep", "1.0")
-            .with_settings("compiler", "libc_version"),
-        "conanfile.py": GenConanfile("app", "1.0")
-            .with_settings("compiler", "libc_version")
-            .with_require("dep/1.0")
-    })
-    tc.run("create dep -s=libc_version=4")
+    tc.save({"conanfile.py": GenConanfile("dep", "1.0").with_settings("libc_version")})
+    tc.run("create . -s=libc_version=2")
     dep_package_id = tc.created_package_id("dep/1.0")
-    tc.run("create . -s=libc_version=3", assert_error=True)
+    tc.run("install --requires=dep/1.0 -s=libc_version=3", assert_error=True)
     # We can't compile, because the dep is not compatible
     assert "Missing prebuilt package for 'dep/1.0'" in tc.out
 
@@ -744,7 +736,7 @@ def test_compatibility_new_setting_forwards_compat():
         available_libc_versions = conanfile.settings.libc_version.possible_values()
         ret = []
         for possible_libc_version in available_libc_versions:
-            if Version(possible_libc_version) >= Version(libc_version):
+            if Version(possible_libc_version) <= Version(libc_version):
                 ret.append({"settings": [("libc_version", possible_libc_version)]})
         return ret
     """)
@@ -766,10 +758,10 @@ def test_compatibility_new_setting_forwards_compat():
     tc.save_home({"extensions/plugins/compatibility/libc_compat.py": libc_compat,
                   "extensions/plugins/compatibility/compatibility.py": compatibility_plugin})
 
-    # Now we try again, this time app will find the compatible dep with libc_version 4
-    tc.run("create . -s=libc_version=3")
-    assert f"dep/1.0: Found compatible package '{dep_package_id}': libc_version=4" in tc.out
+    # Now we try again, this time app will find the compatible dep with libc_version 2
+    tc.run("install --requires=dep/1.0 -s=libc_version=3")
+    assert f"dep/1.0: Found compatible package '{dep_package_id}': libc_version=2" in tc.out
 
-    # And now we try to create the app with libc_version 5, which is still not compatible
-    tc.run("create . -s=libc_version=5", assert_error=True)
+    # And now we try to create the app with libc_version 1, which is still not compatible
+    tc.run("install --requires=dep/1.0 -s=libc_version=1", assert_error=True)
     assert "Missing prebuilt package for 'dep/1.0'" in tc.out
