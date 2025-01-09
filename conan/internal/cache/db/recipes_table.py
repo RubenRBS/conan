@@ -1,4 +1,5 @@
 import sqlite3
+from typing import List
 
 from conan.internal.cache.db.table import BaseDbTable
 from conan.internal.errors import ConanReferenceDoesNotExistInDB, ConanReferenceAlreadyExistsInDB
@@ -73,6 +74,13 @@ class RecipesDBTable(BaseDbTable):
 
     def remove(self, ref: RecipeReference):
         where_clause = self._where_clause(ref)
+        query = f"DELETE FROM {self.table_name} " \
+                f"WHERE {where_clause};"
+        with self.db_connection() as conn:
+            conn.execute(query)
+
+    def remove_all(self, refs: List[RecipeReference]):
+        where_clause = ' OR '.join([f"({self._where_clause(ref)})" for ref in refs])
         query = f"DELETE FROM {self.table_name} " \
                 f"WHERE {where_clause};"
         with self.db_connection() as conn:

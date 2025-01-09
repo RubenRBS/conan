@@ -1,5 +1,5 @@
 from conan.api.model import Remote
-from conan.internal.conan_app import ConanApp
+from conan.internal.conan_app import ConanApp, ConanBasicApp
 from conans.model.package_ref import PkgReference
 from conans.model.recipe_ref import RecipeReference
 
@@ -10,42 +10,51 @@ class RemoveAPI:
         self.conan_api = conan_api
 
     def recipe(self, ref: RecipeReference, remote: Remote=None):
-        assert ref.revision, "Recipe revision cannot be None to remove a recipe"
+        self.recipes([ref], remote)
+
+    def recipes(self, refs, remote: Remote=None):
+        # assert ref.revision, "Recipe revision cannot be None to remove a recipe"
         """Removes the recipe (or recipe revision if present) and all the packages (with all prev)"""
-        app = ConanApp(self.conan_api)
+        app = ConanBasicApp(self.conan_api)
         if remote:
-            app.remote_manager.remove_recipe(ref, remote)
+            for ref in refs:
+                app.remote_manager.remove_recipe(ref, remote)
         else:
-            self.all_recipe_packages(ref)
-            recipe_layout = app.cache.recipe_layout(ref)
-            app.cache.remove_recipe_layout(recipe_layout)
+            self.all_recipes_packages(refs)
+            layouts = [app.cache.recipe_layout(ref) for ref in refs]
+            app.cache.remove_recipe_layouts(layouts)
 
     def all_recipe_packages(self, ref: RecipeReference, remote: Remote = None):
-        assert ref.revision, "Recipe revision cannot be None to remove a recipe"
+        self.all_recipes_packages([ref], remote)
+
+    def all_recipes_packages(self, refs, remote: Remote = None):
+        # assert ref.revision, "Recipe revision cannot be None to remove a recipe"
         """Removes all the packages from the provided reference"""
-        app = ConanApp(self.conan_api)
+        app = ConanBasicApp(self.conan_api)
         if remote:
-            app.remote_manager.remove_all_packages(ref, remote)
+            for ref in refs:
+                app.remote_manager.remove_all_packages(ref, remote)
         else:
-            # Remove all the prefs with all the prevs
-            self._remove_all_local_packages(app, ref)
+            self._remove_all_local_packages(app, refs)
 
     @staticmethod
-    def _remove_all_local_packages(app, ref):
-        # Get all the prefs and all the prevs
-        pkg_ids = app.cache.get_package_references(ref, only_latest_prev=False)
-        for pref in pkg_ids:
-            package_layout = app.cache.pkg_layout(pref)
-            app.cache.remove_package_layout(package_layout)
+    def _remove_all_local_packages(app, refs):
+        prefs = []
+        for ref in refs:
+            pkg_ids = app.cache.get_package_references(ref, only_latest_prev=False)
+            prefs.extend(pkg_ids)
+        layouts = [app.cache.pkg_layout(pref) for pref in prefs]
+        app.cache.remove_package_layouts(layouts)
 
     def package(self, pref: PkgReference, remote: Remote):
-        assert pref.ref.revision, "Recipe revision cannot be None to remove a package"
-        assert pref.revision, "Package revision cannot be None to remove a package"
+        self.packages([pref], remote)
 
-        app = ConanApp(self.conan_api)
+    def packages(self, prefs, remote: Remote):
+        # assert pref.ref.revision, "Recipe revision cannot be None to remove a package"
+        # assert pref.revision, "Package revision cannot be None to remove a package"
+        app = ConanBasicApp(self.conan_api)
         if remote:
-            # FIXME: Create a "packages" method to optimize remote remove?
-            app.remote_manager.remove_packages([pref], remote)
+            app.remote_manager.remove_packages(prefs, remote)
         else:
-            package_layout = app.cache.pkg_layout(pref)
-            app.cache.remove_package_layout(package_layout)
+            layouts = [app.cache.pkg_layout(pref) for pref in prefs]
+            app.cache.remove_package_layouts(layouts)

@@ -92,6 +92,10 @@ def remove(conan_api: ConanAPI, parser, *args):
         multi_package_list = MultiPackagesList()
         multi_package_list.add(cache_name, package_list)
 
+    # Filter which ones we want
+    recipes_to_delete = []
+    packages_to_delete = []
+
     # TODO: This iteration and removal of not-confirmed is ugly and complicated, improve it
     for ref, ref_bundle in package_list.refs().items():
         ref_dict = package_list.recipes[str(ref)]["revisions"]
@@ -99,7 +103,7 @@ def remove(conan_api: ConanAPI, parser, *args):
         if packages is None:
             if confirmation(f"Remove the recipe and all the packages of '{ref.repr_notime()}'?"):
                 if not args.dry_run:
-                    conan_api.remove.recipe(ref, remote=remote)
+                    recipes_to_delete.append(ref)
             else:
                 ref_dict.pop(ref.revision)
                 if not ref_dict:
@@ -116,12 +120,18 @@ def remove(conan_api: ConanAPI, parser, *args):
         for pref, _ in prefs.items():
             if confirmation(f"Remove the package '{pref.repr_notime()}'?"):
                 if not args.dry_run:
-                    conan_api.remove.package(pref, remote=remote)
+                    packages_to_delete.append(pref)
             else:
                 pref_dict = packages[pref.package_id]["revisions"]
                 pref_dict.pop(pref.revision)
                 if not pref_dict:
                     packages.pop(pref.package_id)
+
+    if recipes_to_delete:
+        conan_api.remove.recipes(recipes_to_delete, remote)
+
+    if packages_to_delete:
+        conan_api.remove.packages(packages_to_delete, remote)
 
     return {
         "results": multi_package_list.serialize(),

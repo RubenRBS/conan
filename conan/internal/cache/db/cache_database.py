@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from typing import List
 
 from conan.api.output import ConanOutput
 from conan.internal.cache.db.packages_table import PackagesDBTable
@@ -51,9 +52,16 @@ class CacheDatabase:
         self._recipes.remove(ref)
         self._packages.remove_recipe(ref)
 
+    def remove_recipes(self, refs: List[RecipeReference]):
+        self._recipes.remove_all(refs)
+        self._packages.remove_recipes(refs)
+
     def remove_package(self, ref: PkgReference):
         # Removing the recipe must remove all the package binaries too from DB
         self._packages.remove(ref)
+
+    def remove_packages(self, refs: List[PkgReference]):
+        self._packages.remove_all(refs)
 
     def remove_build_id(self, pref):
         self._packages.remove_build_id(pref)
