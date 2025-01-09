@@ -22,3 +22,6 @@ class SearchAPI:
             if not only_none_user_channel or (r.user is None and r.channel is None):
                 ret.append(r)
         return sorted(ret)
+
+    def reinit(self):
+        pass

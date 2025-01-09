@@ -35,11 +35,11 @@ class ConanAPI:
         self.cache_folder = self.workspace.home_folder() or cache_folder or get_conan_user_home()
         self.home_folder = self.cache_folder  # Lets call it home, deprecate "cache"
 
-        self.reinit()
-
-    def reinit(self):
+        # This API is depended upon by the subsequent ones, it should be initialized first
         self.config = ConfigAPI(self)
         self.config.migrate()
+
+        self.remotes = RemotesAPI(self)
         self.command = CommandAPI(self)
         self.remotes = RemotesAPI(self)
         # Search recipes by wildcard and packages filtering by configuracion
@@ -58,6 +58,30 @@ class ConanAPI:
         self.lockfile = LockfileAPI(self)
         self.local = LocalAPI(self)
 
-        required_range_new = self.config.global_conf.get("core:required_conan_version")
-        if required_range_new:
-            validate_conan_version(required_range_new)
+        _check_conan_version(self)
+
+    def reinit(self):
+        self.config.reinit()
+        self.remotes.reinit()
+        # self.command.reinit()
+        # self.search.reinit()
+        # self.list.reinit()
+        # self.profiles.reinit()
+        # self.install.reinit()
+        # self.graph.reinit()
+        # self.export.reinit()
+        # self.remove.reinit()
+        # self.new.reinit()
+        # self.upload.reinit()
+        # self.download.reinit()
+        # self.cache.reinit()
+        # self.lockfile.reinit()
+        self.local.reinit()
+
+        _check_conan_version(self)
+
+
+def _check_conan_version(conan_api):
+    required_range_new = conan_api.config.global_conf.get("core:required_conan_version")
+    if required_range_new:
+        validate_conan_version(required_range_new)

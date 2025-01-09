@@ -32,6 +32,9 @@ class RemotesAPI:
         self._home_folder = conan_api.home_folder
         self._remotes_file = HomePaths(self._home_folder).remotes_path
 
+    def reinit(self):
+        pass
+
     def list(self, pattern=None, only_enabled=True):
         """
         Obtain a list of ``Remote`` objects matching the pattern.

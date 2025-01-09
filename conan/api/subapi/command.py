@@ -8,6 +8,9 @@ class CommandAPI:
         self.conan_api = conan_api
         self.cli = None
 
+    def reinit(self):
+        pass
+
     def run(self, cmd):
         if isinstance(cmd, str):
             cmd = cmd.split()

@@ -210,3 +210,6 @@ class ConfigAPI:
                     remove(content_path)
         # CHECK: This also generates a remotes.json that is not there after a conan profile show?
         self.migrate()
+
+    def reinit(self):
+        self._new_config = None

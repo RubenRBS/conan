@@ -167,3 +167,6 @@ class ProfilesAPI:
         mod, _ = load_python_file(profile_plugin)
         if hasattr(mod, "profile_plugin"):
             return mod.profile_plugin
+
+    def reinit(self):
+        pass

@@ -102,3 +102,6 @@ class DownloadAPI:
 
         elapsed = time.time() - t
         ConanOutput().success(f"Download completed in {int(elapsed)}s\n")
+
+    def reinit(self):
+        pass
