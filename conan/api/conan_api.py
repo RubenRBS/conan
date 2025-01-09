@@ -1,6 +1,7 @@
 import sys
 
 from conan.api.output import init_colorama
+from conan.api.subapi.audit import AuditAPI
 from conan.api.subapi.cache import CacheAPI
 from conan.api.subapi.command import CommandAPI
 from conan.api.subapi.local import LocalAPI
@@ -59,6 +60,7 @@ class ConanAPI:
         self.cache = CacheAPI(self)
         self.lockfile = LockfileAPI(self)
         self.local = LocalAPI(self)
+        self.audit = AuditAPI(self)
 
         required_range_new = self.config.global_conf.get("core:required_conan_version")
         if required_range_new:
