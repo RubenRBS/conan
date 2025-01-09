@@ -21,7 +21,7 @@ def _add_provider_arg(subparser):
     subparser.add_argument("-p", "--provider", help="Provider to use for scanning")
 
 
-@conan_subcommand()
+@conan_subcommand(formatters={"text": cli_out_write, "json": cli_out_write})
 def audit_scan(conan_api: ConanAPI, parser, subparser, *args):
     """
     Scan a given recipe for vulnerabilities in its dependencies.
@@ -62,6 +62,8 @@ def audit_scan(conan_api: ConanAPI, parser, subparser, *args):
     deps_graph.report_graph_error()
 
     vulnerabilities = conan_api.audit.scan(deps_graph, provider)
+
+    return vulnerabilities
 
 
 @conan_subcommand
