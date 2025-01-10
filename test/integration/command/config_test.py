@@ -220,3 +220,24 @@ def test_config_clean():
     assert "7" not in tc.out
     assert not os.path.exists(os.path.join(tc.cache_folder, "extensions"))
 
+
+def test_config_reinit():
+    custom_global_conf = "core.upload:retry=7"
+    global_conf_folder = temp_folder()
+    with open(os.path.join(global_conf_folder, "global.conf"), "w") as f:
+        f.write(custom_global_conf)
+
+    cache_folder = temp_folder()
+    conan_api = ConanAPI(cache_folder=cache_folder)
+    # Ensure reinitialization does not invalidate references
+    config_api = conan_api.config
+    assert config_api.global_conf.get("core.upload:retry", check_type=int) != 7
+
+    conan_api.config.install(global_conf_folder, verify_ssl=False)
+
+    # No effect yet, we haven't reinitialized the API after the config installation
+    assert config_api.global_conf.get("core.upload:retry", check_type=int) != 7
+
+    conan_api.reinit()
+
+    assert config_api.global_conf.get("core.upload:retry", check_type=int) == 7
