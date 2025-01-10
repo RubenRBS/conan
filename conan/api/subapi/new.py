@@ -152,6 +152,3 @@ class NewAPI:
                                  "Required definitions are: {}"
                                  .format(", ".join("'{}'".format(var) for var in template_vars)))
         return result
-
-    def reinit(self):
-        pass

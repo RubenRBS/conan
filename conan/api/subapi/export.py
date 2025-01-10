@@ -63,6 +63,3 @@ class ExportAPI:
         conanfile.folders.set_base_package(final_folder)
         out.info(f"Package folder {final_folder}")
         out.success("Exported package binary")
-
-    def reinit(self):
-        pass

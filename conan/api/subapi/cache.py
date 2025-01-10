@@ -242,8 +242,6 @@ class CacheAPI:
         download_cache = DownloadCache(download_cache_path)
         return download_cache.get_backup_sources_files(excluded_urls, package_list, only_upload)
 
-    def reinit(self):
-        pass
 
 
 def _resolve_latest_ref(cache, ref):

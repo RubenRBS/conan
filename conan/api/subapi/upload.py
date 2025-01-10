@@ -141,6 +141,3 @@ class UploadAPI:
 
         output.success("Upload backup sources complete\n")
         return files
-
-    def reinit(self):
-        pass

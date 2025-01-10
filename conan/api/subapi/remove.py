@@ -49,6 +49,3 @@ class RemoveAPI:
         else:
             package_layout = app.cache.pkg_layout(pref)
             app.cache.remove_package_layout(package_layout)
-
-    def reinit(self):
-        pass

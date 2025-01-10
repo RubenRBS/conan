@@ -89,6 +89,3 @@ class InstallAPI:
         hook_manager = HookManager(HomePaths(self.conan_api.home_folder).hooks_path)
         write_generators(conanfile, hook_manager, self.conan_api.home_folder,
                          envs_generation=envs_generation)
-
-    def reinit(self):
-        pass

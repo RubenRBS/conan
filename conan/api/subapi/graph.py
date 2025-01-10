@@ -200,6 +200,3 @@ class GraphAPI:
         binaries_analyzer = GraphBinariesAnalyzer(conan_app, self.conan_api.config.global_conf)
         binaries_analyzer.evaluate_graph(graph, build_mode, lockfile, remotes, update,
                                          build_modes_test, tested_graph)
-
-    def reinit(self):
-        pass

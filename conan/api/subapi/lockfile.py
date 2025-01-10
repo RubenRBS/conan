@@ -103,6 +103,3 @@ class LockfileAPI:
             lockfile_out = make_abs_path(lockfile_out, path)
             lockfile.save(lockfile_out)
             ConanOutput().info(f"Generated lockfile: {lockfile_out}")
-
-    def reinit(self):
-        pass

@@ -263,9 +263,6 @@ class ListAPI:
             rev_dict["packages"][pref.package_id]["remote"] = remote
         return pkglist
 
-    def reinit(self):
-        pass
-
 
 class _BinaryDistance:
     def __init__(self, pref, binary, expected, remote=None):
