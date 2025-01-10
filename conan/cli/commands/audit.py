@@ -27,12 +27,11 @@ def audit_scan(conan_api: ConanAPI, parser, subparser, *args):
     Scan a given recipe for vulnerabilities in its dependencies.
     """
     common_graph_args(subparser)
+    # TODO: Might not be needed?
     parser.add_argument("--build-require", action='store_true', default=False,
                         help='Whether the provided path is a build-require')
     _add_provider_arg(subparser)
     args = parser.parse_args(*args)
-
-    provider = conan_api.audit.get_provider(args.provider)
 
     # This comes from install command
 
@@ -61,6 +60,10 @@ def audit_scan(conan_api: ConanAPI, parser, subparser, *args):
     print_graph_basic(deps_graph)
     deps_graph.report_graph_error()
 
+    if deps_graph.error:
+        return {"error": deps_graph.error}
+
+    provider = conan_api.audit.get_provider(args.provider)
     vulnerabilities = conan_api.audit.scan(deps_graph, provider)
 
     return vulnerabilities
@@ -76,9 +79,9 @@ def audit_list(conan_api: ConanAPI, parser, subparser, *args):
     args = parser.parse_args(*args)
 
     provider = conan_api.audit.get_provider(args.provider)
-
     vulnerabilities = conan_api.audit.list(args.reference, provider)
 
+    return vulnerabilities
 
 
 @conan_subcommand()
@@ -102,7 +105,6 @@ def audit_add_provider(conan_api, parser, subparser, *args):
     conan_api.audit.add_provider(args.name, args.url, args.type, token)
 
 
-
 @conan_subcommand()
 def audit_auth_provider(conan_api, parser, subparser, *args):
     """
@@ -120,7 +122,6 @@ def audit_auth_provider(conan_api, parser, subparser, *args):
 
     provider = conan_api.audit.get_provider(args.name)
     conan_api.audit.auth_provider(provider, token)
-
 
 
 @conan_command(group="Security")

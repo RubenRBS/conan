@@ -30,26 +30,65 @@ class AuditAPI:
         """
         Scan a given recipe for vulnerabilities in its dependencies.
         """
-        pass
+        refs = list(set(f"{node.ref.name}/{node.ref.version}" for node in deps_graph.nodes[1:]))
+
+        ConanOutput().info(f"Requesting vulnerability information for: {', '.join(refs)}")
+
+        return provider.get_cves(refs)
 
     def list(self, reference, provider):
         """
         List the vulnerabilities of the given reference.
         """
-        pass
+        ConanOutput().info(f"Requesting vulnerability information for: {reference}")
+
+        return provider.get_cves([reference])
 
     def get_provider(self, provider_name):
         """
         Get the provider by name.
         """
-        pass
+        if not os.path.exists(self._providers_path):
+            default_providers = [
+                {
+                    "name": CONAN_CENTER_CATALOG_NAME,
+                    "url": "https://conan-center-catalog.jfrog.io/api/v1",
+                    "type": "conan-center-proxy"
+                }
+            ]
+            save(self._providers_path, json.dumps(default_providers))
+         # TODO: More
+
+        class CatalogProxyProvider:
+            def __init__(self):
+                pass
+
+            def get_cves(self, refs):
+                return []
+
+        # TODO: more
+        return CatalogProxyProvider()
 
     # TODO: See if token should be optional
     def add_provider(self, name, url, provider_type, token=None):
         """
         Add a provider.
         """
-        pass
+        if self.get_provider(name):
+            raise ConanException(f"Provider '{name}' already exists")
+
+        providers = json.loads(load(self._providers_path))
+        new_provider_data = {
+            "name": name,
+            "url": url,
+            "type": provider_type
+        }
+        if token:
+            new_provider_data["token"] = token
+        providers.append(new_provider_data)
+        save(self._providers_path, json.dumps(providers))
+        # TODO: Store the token in a different file/place
+
 
     # TODO: Should this be a provider, or just its name?
     #   Do we want users to call get_provider beforehand or should we handle it here?
@@ -59,3 +98,4 @@ class AuditAPI:
         Authenticate a provider.
         """
         pass
+        # TODO: Store the token in a different file/place
