@@ -61,6 +61,7 @@ class ConanAPI:
 
     def reinit(self):
         self.config.reinit()
+        self.config.migrate()
         self.remotes.reinit()
         self.local.reinit()
 

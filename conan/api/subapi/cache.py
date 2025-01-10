@@ -243,7 +243,6 @@ class CacheAPI:
         return download_cache.get_backup_sources_files(excluded_urls, package_list, only_upload)
 
 
-
 def _resolve_latest_ref(cache, ref):
     if ref.revision is None or ref.revision == "latest":
         ref.revision = None

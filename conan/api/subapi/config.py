@@ -194,13 +194,12 @@ class ConfigAPI:
 
     def migrate(self):
         # Migration system
-        # TODO: Still needs refactoring - using it here for now for tests
+        # TODO: A prettier refactoring of migrators would be nice
         from conans.client.migrations import ClientMigrator
         migrator = ClientMigrator(self.home(), conan_version)
         migrator.migrate()
 
     def clean(self):
-        # TODO: Check what we're deleting
         contents = os.listdir(self.home())
         for content in contents:
             # keep packages

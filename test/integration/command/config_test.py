@@ -211,7 +211,7 @@ def test_config_clean():
                   "extensions/compatibility/mycomp.py": "",
                   "extensions/commands/cmd_foo.py": "",
                   })
-    tc.run("config clean -c")
+    tc.run("config clean")
     tc.run("profile list")
     assert "foo" not in tc.out
     tc.run("remote list")

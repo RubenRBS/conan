@@ -140,9 +140,5 @@ def config_clean(conan_api, parser, subparser, *args):
     """
     Clean the configuration files in the Conan home folder. (Keeping installed packages)
     """
-    subparser.add_argument("-c", "--confirm", action='store_true',
-                           help="Do not request confirmation")
-    args = parser.parse_args(*args)
-    ui = UserInput(conan_api.config.get("core:non_interactive"))
-    if args.confirm or ui.request_boolean("Clear all configuration files?"):
-        conan_api.config.clean()
+    parser.parse_args(*args)
+    conan_api.config.clean()
