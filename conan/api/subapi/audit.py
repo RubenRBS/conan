@@ -110,6 +110,9 @@ class AuditAPI:
         save(self._providers_path, json.dumps(providers))
 
 
+
+# TODO: Think if providers are classes that implement get_cves,
+#  or just a function and the discrimination is done in the AuditAPI
 class _ConanProxyProvider:
     def __init__(self, name, provider_data):
         self.name = name
