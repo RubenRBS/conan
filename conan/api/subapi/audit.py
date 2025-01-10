@@ -55,7 +55,6 @@ class AuditAPI:
                 CONAN_CENTER_CATALOG_NAME: {
                     "url": "http://conancenter-stg-api.jfrog.team/api/v1/query",
                     "type": "conan-center-proxy",
-                    "token": "uINc3QrBfIz9JJuqg0EQ5yuTIiuAYQ1pi3E7tVkF9jfWgLSzoUXSpfYGFS2ssVF9vnAohURIjjjLEe41k7NSMQ=="
                 }
             }
             save(self._providers_path, json.dumps(default_providers))
@@ -67,7 +66,9 @@ class AuditAPI:
 
         provider_data = providers[provider_name]
         provider_cls = {
-            "conan-center-proxy": _ConanProxyProvider
+            # TODO: Temp names, find better ones (specially, no mention of catalog)
+            "conan-center-proxy": _ConanProxyProvider,
+            "private": _PrivateProvider
         }.get(provider_data["type"])
 
         return provider_cls(provider_name, provider_data)
