@@ -41,8 +41,7 @@ class ConanAPI:
 
         self.remotes = RemotesAPI(self)
         self.command = CommandAPI(self)
-        self.remotes = RemotesAPI(self)
-        # Search recipes by wildcard and packages filtering by configuracion
+        # Search recipes by wildcard and packages filtering by configuration
         self.search = SearchAPI(self)
         # Get latest refs and list refs of recipes and packages
         self.list = ListAPI(self)
