@@ -6,6 +6,7 @@ from conan.api.conan_api import ConanAPI
 from conan.api.input import UserInput
 from conan.api.model import Remote, LOCAL_RECIPES_INDEX
 from conan.api.output import cli_out_write, Color, ConanOutput
+from conan.api.subapi.audit import CONAN_CENTER_CATALOG_NAME
 from conan.cli import make_abs_path
 from conan.cli.args import common_graph_args, validate_common_graph_args
 from conan.cli.command import conan_command, conan_subcommand, OnceArgument
@@ -63,13 +64,13 @@ def audit_scan(conan_api: ConanAPI, parser, subparser, *args):
     if deps_graph.error:
         return {"error": deps_graph.error}
 
-    provider = conan_api.audit.get_provider(args.provider)
+    provider = conan_api.audit.get_provider(args.provider or CONAN_CENTER_CATALOG_NAME)
     vulnerabilities = conan_api.audit.scan(deps_graph, provider)
 
     return vulnerabilities
 
 
-@conan_subcommand
+@conan_subcommand(formatters={"text": cli_out_write, "json": cli_out_write})
 def audit_list(conan_api: ConanAPI, parser, subparser, *args):
     """
     List the vulnerabilities of the given reference.
@@ -78,7 +79,7 @@ def audit_list(conan_api: ConanAPI, parser, subparser, *args):
     _add_provider_arg(subparser)
     args = parser.parse_args(*args)
 
-    provider = conan_api.audit.get_provider(args.provider)
+    provider = conan_api.audit.get_provider(args.provider or CONAN_CENTER_CATALOG_NAME)
     vulnerabilities = conan_api.audit.list(args.reference, provider)
 
     return vulnerabilities

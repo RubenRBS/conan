@@ -3,6 +3,8 @@ import json
 import os
 from urllib.parse import urlparse
 
+import requests
+
 from conan.api.model import Remote, LOCAL_RECIPES_INDEX
 from conan.api.output import ConanOutput
 from conan.internal.cache.home_paths import HomePaths
@@ -49,25 +51,26 @@ class AuditAPI:
         Get the provider by name.
         """
         if not os.path.exists(self._providers_path):
-            default_providers = [
-                {
-                    "name": CONAN_CENTER_CATALOG_NAME,
-                    "url": "https://conan-center-catalog.jfrog.io/api/v1",
-                    "type": "conan-center-proxy"
+            default_providers = {
+                CONAN_CENTER_CATALOG_NAME: {
+                    "url": "http://conancenter-stg-api.jfrog.team/api/v1/query",
+                    "type": "conan-center-proxy",
+                    "token": "uINc3QrBfIz9JJuqg0EQ5yuTIiuAYQ1pi3E7tVkF9jfWgLSzoUXSpfYGFS2ssVF9vnAohURIjjjLEe41k7NSMQ=="
                 }
-            ]
+            }
             save(self._providers_path, json.dumps(default_providers))
-         # TODO: More
 
-        class CatalogProxyProvider:
-            def __init__(self):
-                pass
+        # TODO: More work remains to be done here, hardcoded for now for testing
+        providers = json.loads(load(self._providers_path))
+        if provider_name not in providers:
+            raise ConanException(f"Provider '{provider_name}' not found")
 
-            def get_cves(self, refs):
-                return []
+        provider_data = providers[provider_name]
+        provider_cls = {
+            "conan-center-proxy": _ConanProxyProvider
+        }.get(provider_data["type"])
 
-        # TODO: more
-        return CatalogProxyProvider()
+        return provider_cls(provider_name, provider_data)
 
     # TODO: See if token should be optional
     def add_provider(self, name, url, provider_type, token=None):
@@ -78,24 +81,76 @@ class AuditAPI:
             raise ConanException(f"Provider '{name}' already exists")
 
         providers = json.loads(load(self._providers_path))
-        new_provider_data = {
+        providers[name] = {
             "name": name,
             "url": url,
             "type": provider_type
         }
         if token:
-            new_provider_data["token"] = token
-        providers.append(new_provider_data)
+            # TODO: Store the token in a different file/place
+            providers[name]["token"] = token
         save(self._providers_path, json.dumps(providers))
-        # TODO: Store the token in a different file/place
 
 
     # TODO: Should this be a provider, or just its name?
     #   Do we want users to call get_provider beforehand or should we handle it here?
-    # TODO: Is this even an api method? Or should the command handle it directly?
     def auth_provider(self, provider, token):
         """
         Authenticate a provider.
         """
-        pass
         # TODO: Store the token in a different file/place
+        if not provider:
+            raise ConanException("Provider not found")
+
+        providers = json.loads(load(self._providers_path))
+
+        assert provider.name in providers
+        # TODO: Store this somewhere else
+        providers[provider.name]["token"] = token
+        save(self._providers_path, json.dumps(providers))
+
+
+class _ConanProxyProvider:
+    def __init__(self, name, provider_data):
+        self.name = name
+        self.url = provider_data["url"]
+        self.token = provider_data.get("token")
+
+    def get_cves(self, refs):
+        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+        print(headers)
+        result = {"data": {}}
+
+        for ref in refs:
+            ConanOutput().info(f"Requesting vulnerability info for: {ref}")
+            response = requests.post(
+                self.url,
+                headers=headers,
+                json={
+                    "reference": ref,
+                },
+            )
+            if response.status_code == 200:
+                result["data"].update(response.json()["data"])
+            elif response.status_code == 429:
+                # TODO: How to report ratelimit to the user
+                msg = "Rate limit exceeded. Results may be incomplete."
+                if not self.token:
+                    msg += "\nPlease go to https://conancenter-stg-api.jfrog.team/ to register for a token to increase the rate limit."
+                ConanOutput().warning(msg)
+                break
+            else:
+                ConanOutput().error(f"Failed to get vulnerabilities for {ref}: {response.status_code}")
+                ConanOutput().error(response.text)
+        return result
+
+class _PrivateProvider:
+    def __init__(self, name, provider_data):
+        self.name = name
+        self.url = provider_data["url"]
+        self.token = provider_data.get("token")
+
+    def get_cves(self, refs):
+        pass
