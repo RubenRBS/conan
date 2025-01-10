@@ -120,5 +120,4 @@ class LocalAPI:
         return conanfile
 
     def reinit(self):
-        # TODO: Check if this is risky
         self.editable_packages = EditablePackages(self._conan_api.home_folder)
