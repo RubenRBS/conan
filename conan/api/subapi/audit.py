@@ -148,6 +148,7 @@ class _ConanProxyProvider:
             else:
                 ConanOutput().error(f"Failed to get vulnerabilities for {ref}: {response.status_code}")
                 ConanOutput().error(response.text)
+        # TODO: Normalize this result so that every provider returns the same format
         return result
 
 class _PrivateProvider:
