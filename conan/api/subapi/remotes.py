@@ -36,7 +36,7 @@ class RemotesAPI:
         self._requester = ConanRequester(self.conan_api.config.global_conf, self.conan_api.cache_folder)
 
     def reinit(self):
-        pass
+        self._requester = ConanRequester(self.conan_api.config.global_conf, self.conan_api.cache_folder)
 
     def list(self, pattern=None, only_enabled=True):
         """
