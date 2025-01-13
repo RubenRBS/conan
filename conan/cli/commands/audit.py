@@ -46,6 +46,21 @@ def text_vuln_formatter(list_of_data_json):
                 node = vuln["node"]
                 reference_url = node["references"][0] if node["references"] else "#"
                 cli_out_write(f"  {node['name']} - {node['description']} - {reference_url}\n")
+
+                if "advisories" in node:
+                    for advisory in node["advisories"]:
+                        cli_out_write(f"    {advisory['name']}")
+                        if advisory["name"].startswith("JFSA"):
+                            # JFrog Security Advisory, give more context
+                            if advisory["fullDescription"]:
+                                cli_out_write(f"      - {advisory['fullDescription']}")
+                            elif advisory["shortDescription"]:
+                                cli_out_write(f"      - {advisory['shortDescription']}")
+                            if advisory["severity"]:
+                                cli_out_write(f"      - Severity: {advisory['severity']}")
+                            if advisory["url"]:
+                                cli_out_write(f"      - More info at {advisory['url']}")
+                            cli_out_write("      Advisory provided by JFrog Security")
         else:
             # Add package name to the list of packages without vulnerabilities
             packages_without_vulns.append(ref)

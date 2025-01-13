@@ -202,7 +202,14 @@ class _PrivateProvider:
                             aliases
                             advisories {{
                                 name
-                            }}
+                                ...on JfrogAdvisory {{
+                                          name
+                                          shortDescription
+                                          fullDescription
+                                          url
+                                          severity
+                                     }}
+                                }}
                             references
                         }}
                     }}
