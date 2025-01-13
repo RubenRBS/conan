@@ -30,6 +30,7 @@ def text_vuln_formatter(list_of_data_json):
             or "errors" in list_of_data_json \
             or "data" not in list_of_data_json \
             or list_of_data_json["data"] is None:
+        # Specifically, show the error here maybe?
         cli_out_write("No vulnerabilities found")
         return
 
@@ -113,7 +114,7 @@ def audit_scan(conan_api: ConanAPI, parser, subparser, *args):
     return vulnerabilities
 
 
-@conan_subcommand(formatters={"text": cli_out_write, "json": json_vuln_formatter})
+@conan_subcommand(formatters={"text": text_vuln_formatter, "json": json_vuln_formatter})
 def audit_list(conan_api: ConanAPI, parser, subparser, *args):
     """
     List the vulnerabilities of the given reference.
