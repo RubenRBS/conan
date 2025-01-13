@@ -148,6 +148,6 @@ def test_back_default_compatibility_migration():
     # simulate that we are in 2.3.2 and the old one is latest conan_version
     migrator = ClientMigrator(t.cache_folder, Version("2.3.2"))
 
-    with patch('conan.api.conan_api.ClientMigrator', new=lambda *args, **kwargs: migrator):
+    with patch('conan.api.subapi.config.ClientMigrator', new=lambda *args, **kwargs: migrator):
         t.run("-v")  # Fire the backward migration
         assert f"WARN: Downgrading cache from Conan {conan_version} to 2.3.2" in t.out

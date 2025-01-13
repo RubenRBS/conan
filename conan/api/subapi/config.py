@@ -12,6 +12,7 @@ from conan.internal.api.detect import detect_api
 from conan.internal.cache.home_paths import HomePaths
 from conan.internal.conan_app import ConanApp
 from conan.internal.default_settings import default_settings_yml
+from conans.client.migrations import ClientMigrator
 from conans.client.graph.graph import CONTEXT_HOST, RECIPE_VIRTUAL, Node
 from conans.client.graph.graph_builder import DepsGraphBuilder
 from conans.client.graph.profile_node_definer import consumer_definer
@@ -195,7 +196,6 @@ class ConfigAPI:
     def migrate(self):
         # Migration system
         # TODO: A prettier refactoring of migrators would be nice
-        from conans.client.migrations import ClientMigrator
         migrator = ClientMigrator(self.home(), conan_version)
         migrator.migrate()
 
