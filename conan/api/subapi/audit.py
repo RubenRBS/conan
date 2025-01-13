@@ -34,7 +34,7 @@ class AuditAPI:
         """
         refs = list(set(f"{node.ref.name}/{node.ref.version}" for node in deps_graph.nodes[1:]))
 
-        ConanOutput().info(f"Requesting vulnerability information for: {', '.join(refs)}")
+        # ConanOutput().info(f"Requesting vulnerability information for: {', '.join(refs)}")
 
         return provider.get_cves(refs)
 
@@ -42,7 +42,7 @@ class AuditAPI:
         """
         List the vulnerabilities of the given reference.
         """
-        ConanOutput().info(f"Requesting vulnerability information for: {reference}")
+        # ConanOutput().info(f"Requesting vulnerability information for: {reference}")
 
         return provider.get_cves([reference])
 
@@ -62,7 +62,7 @@ class AuditAPI:
         # TODO: More work remains to be done here, hardcoded for now for testing
         providers = json.loads(load(self._providers_path))
         if provider_name not in providers:
-            raise ConanException(f"Provider '{provider_name}' not found")
+            raise ConanException(f"Provider '{provider_name}' not found: {json.dumps(providers)}")
 
         provider_data = providers[provider_name]
         provider_cls = {
@@ -124,7 +124,7 @@ class _ConanProxyProvider:
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
-        print(headers)
+
         result = {"data": {}}
 
         for ref in refs:
@@ -138,12 +138,20 @@ class _ConanProxyProvider:
             )
             if response.status_code == 200:
                 result["data"].update(response.json()["data"])
+            elif response.status_code == 403:
+                # TODO: How to report auth error to the user
+                ConanOutput().error(f"Authentication error: {response.status_code}")
+                break
             elif response.status_code == 429:
                 # TODO: How to report ratelimit to the user
                 msg = "Rate limit exceeded. Results may be incomplete."
                 if not self.token:
                     msg += "\nPlease go to https://conancenter-stg-api.jfrog.team/ to register for a token to increase the rate limit."
                 ConanOutput().warning(msg)
+                break
+            elif response.status_code == 500:
+                # TODO: How to report internal server error to the user
+                ConanOutput().error(f"Internal server error: {response.status_code}")
                 break
             else:
                 ConanOutput().error(f"Failed to get vulnerabilities for {ref}: {response.status_code}")

@@ -22,7 +22,50 @@ def _add_provider_arg(subparser):
     subparser.add_argument("-p", "--provider", help="Provider to use for scanning")
 
 
-@conan_subcommand(formatters={"text": cli_out_write, "json": cli_out_write})
+def text_vuln_formatter(list_of_data_json):
+    total_vulnerabilities = 0
+    packages_without_vulns = []
+    # TODO: "errors" in list_of_data_json should be handled
+    if not list_of_data_json \
+            or "errors" in list_of_data_json \
+            or "data" not in list_of_data_json \
+            or list_of_data_json["data"] is None:
+        cli_out_write("No vulnerabilities found")
+        return
+
+    for library_key, library_data in list_of_data_json["data"].items():
+        vulnerabilities = library_data["vulnerabilities"]["edges"]
+        ref = f"{library_key}/{library_data['version']}"
+        if vulnerabilities:
+            # Accumulate total vulnerabilities and add them to the table
+            cli_out_write(f"{ref}: {len(vulnerabilities)} vulnerabilities\n")
+            total_vulnerabilities += len(vulnerabilities)
+            sorted_vulns = sorted(vulnerabilities, key=lambda x: x["node"]["name"])
+            for vuln in sorted_vulns:
+                node = vuln["node"]
+                reference_url = node["references"][0] if node["references"] else "#"
+                cli_out_write(f"  {node['name']} - {node['description']} - {reference_url}\n")
+        else:
+            # Add package name to the list of packages without vulnerabilities
+            packages_without_vulns.append(ref)
+
+    # TODO: ConanOutput()?
+    cli_out_write(
+        f"Total vulnerabilities found: {total_vulnerabilities}"
+    )
+
+    # Print the list of packages without vulnerabilities
+    if packages_without_vulns:
+        cli_out_write(
+            "No vulnerabilities found in: " + ", ".join(packages_without_vulns)
+        )
+
+    cli_out_write("Vulnerability information provided by [link=https://jfrog.com/help/r/jfrog-catalog/jfrog-catalog]JFrog Catalog[/]")
+
+def json_vuln_formatter(data):
+    cli_out_write(json.dumps(data, indent=4))
+
+@conan_subcommand(formatters={"text": text_vuln_formatter, "json": json_vuln_formatter})
 def audit_scan(conan_api: ConanAPI, parser, subparser, *args):
     """
     Scan a given recipe for vulnerabilities in its dependencies.
@@ -70,7 +113,7 @@ def audit_scan(conan_api: ConanAPI, parser, subparser, *args):
     return vulnerabilities
 
 
-@conan_subcommand(formatters={"text": cli_out_write, "json": cli_out_write})
+@conan_subcommand(formatters={"text": cli_out_write, "json": json_vuln_formatter})
 def audit_list(conan_api: ConanAPI, parser, subparser, *args):
     """
     List the vulnerabilities of the given reference.
