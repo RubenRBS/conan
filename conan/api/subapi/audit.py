@@ -29,6 +29,11 @@ class AuditAPI:
         self.conan_api = conan_api
         self._home_folder = conan_api.home_folder
         self._providers_path = os.path.join(self._home_folder, "audit_providers.json")
+        self._provider_cls = {
+            # TODO: Temp names, find better ones (specially, no mention of catalog)
+            "conan-center-proxy": _ConanProxyProvider,
+            "private": _PrivateProvider
+        }
 
     def scan(self, deps_graph, provider):
         """
@@ -69,11 +74,7 @@ class AuditAPI:
             return None
 
         provider_data = providers[provider_name]
-        provider_cls = {
-            # TODO: Temp names, find better ones (specially, no mention of catalog)
-            "conan-center-proxy": _ConanProxyProvider,
-            "private": _PrivateProvider
-        }.get(provider_data["type"])
+        provider_cls = self._provider_cls.get(provider_data["type"])
 
         return provider_cls(provider_name, provider_data)
 
@@ -84,6 +85,9 @@ class AuditAPI:
         """
         if self.get_provider(name):
             raise ConanException(f"Provider '{name}' already exists")
+
+        if provider_type not in self._provider_cls:
+            raise ConanException(f"Provider type '{provider_type}' not found")
 
         providers = json.loads(load(self._providers_path))
         # TODO: Validate data
@@ -249,7 +253,6 @@ class _PrivateProvider:
             )
             # Raises if some HTTP error was found
             response.raise_for_status()
-
         except:
             return {"error": {"details": "Something went wrong"}}
 
