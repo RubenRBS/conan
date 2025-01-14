@@ -6,7 +6,7 @@ import pytest
 
 from conan.api.conan_api import ConanAPI
 from conan.test.assets.genconanfile import GenConanfile
-from conans.model.conf import BUILT_IN_CONFS
+from conan.internal.model.conf import BUILT_IN_CONFS
 from conan.test.utils.test_files import temp_folder
 from conan.test.utils.tools import TestClient
 from conan.test.utils.env import environment_update
