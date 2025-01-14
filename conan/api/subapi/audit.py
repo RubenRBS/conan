@@ -162,10 +162,7 @@ class _ConanProxyProvider:
                 ConanOutput().error(f"Authentication error: {response.status_code}")
                 break
             elif response.status_code == 429:
-                # TODO: How to report ratelimit to the user
                 msg = "Rate limit exceeded. Results may be incomplete."
-                if not self.token:
-                    msg += "\nPlease go to https://conancenter-stg-api.jfrog.team/ to register for a token to increase the rate limit."
                 ConanOutput().warning(msg)
                 break
             elif response.status_code == 500:
@@ -175,6 +172,7 @@ class _ConanProxyProvider:
             else:
                 ConanOutput().error(f"Failed to get vulnerabilities for {ref}: {response.status_code}")
                 ConanOutput().error(response.text)
+                break
         return result
 
 class _PrivateProvider:
