@@ -20,6 +20,7 @@ from conan.api.subapi.search import SearchAPI
 from conan.api.subapi.upload import UploadAPI
 from conan.errors import ConanException
 from conan.internal.paths import get_conan_user_home
+from conans.client.migrations import ClientMigrator
 from conans.model.version_range import validate_conan_version
 
 
@@ -34,10 +35,10 @@ class ConanAPI:
         self.workspace = WorkspaceAPI(self)
         self.cache_folder = self.workspace.home_folder() or cache_folder or get_conan_user_home()
         self.home_folder = self.cache_folder  # Lets call it home, deprecate "cache"
+        self.migrate()
 
         # This API is depended upon by the subsequent ones, it should be initialized first
         self.config = ConfigAPI(self)
-        self.config.migrate()
 
         self.remotes = RemotesAPI(self)
         self.command = CommandAPI(self)
@@ -65,6 +66,13 @@ class ConanAPI:
         self.local.reinit()
 
         _check_conan_version(self)
+
+    def migrate(self):
+        # Migration system
+        # TODO: A prettier refactoring of migrators would be nice
+        from conan import conan_version
+        migrator = ClientMigrator(self.cache_folder, conan_version)
+        migrator.migrate()
 
 
 def _check_conan_version(conan_api):

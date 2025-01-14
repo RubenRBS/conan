@@ -12,7 +12,6 @@ from conan.internal.api.detect import detect_api
 from conan.internal.cache.home_paths import HomePaths
 from conan.internal.conan_app import ConanApp
 from conan.internal.default_settings import default_settings_yml
-from conans.client.migrations import ClientMigrator
 from conans.client.graph.graph import CONTEXT_HOST, RECIPE_VIRTUAL, Node
 from conans.client.graph.graph_builder import DepsGraphBuilder
 from conans.client.graph.profile_node_definer import consumer_definer
@@ -193,12 +192,6 @@ class ConfigAPI:
 
         return Settings(settings)
 
-    def migrate(self):
-        # Migration system
-        # TODO: A prettier refactoring of migrators would be nice
-        migrator = ClientMigrator(self.home(), conan_version)
-        migrator.migrate()
-
     def clean(self):
         contents = os.listdir(self.home())
         for content in contents:
@@ -211,7 +204,7 @@ class ConfigAPI:
                 else:
                     remove(content_path)
         # CHECK: This also generates a remotes.json that is not there after a conan profile show?
-        self.migrate()
+        self.conan_api.migrate()
 
     def reinit(self):
         self._new_config = None
