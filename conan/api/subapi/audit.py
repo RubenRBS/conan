@@ -98,7 +98,6 @@ class AuditAPI:
             providers[name]["token"] = token
         _save_providers(self._providers_path, providers)
 
-
     # TODO: Should this be a provider, or just its name?
     #   Do we want users to call get_provider beforehand or should we handle it here?
     def auth_provider(self, provider, token):

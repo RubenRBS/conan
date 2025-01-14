@@ -143,60 +143,61 @@ def audit_list(conan_api: ConanAPI, parser, subparser, *args):
 
     return vulnerabilities
 
-
-@conan_subcommand()
-def audit_provider_add(conan_api, parser, subparser, *args):
-    """
-    Add a provider.
-    """
-    subparser.add_argument("name", help="Provider name to add")
-    subparser.add_argument("url", help="Provider URL to add")
-    subparser.add_argument("type", help="Provider type to add", choices=["catalog", "private"])  # TODO: Temp names
-    subparser.add_argument("-t", "--token", help="Provider token")
-    args = parser.parse_args(*args)
-
-    if not args.token:
-        user_input = UserInput(conan_api.config.get("core:non_interactive"))
-        ConanOutput().write(f"Please enter a token for {args.name} the provider: ")
-        token = user_input.get_password()
-    else:
-        token = args.token
-
-    conan_api.audit.add_provider(args.name, args.url, args.type, token)
-
-
-@conan_subcommand()
-def audit_provider_auth(conan_api, parser, subparser, *args):
-    """
-    Authenticate on a provider
-    """
-    subparser.add_argument("name", help="Provider name to authenticate")
-    subparser.add_argument("-t", "--token", help="Provider token to authenticate")
-    args = parser.parse_args(*args)
-    if not args.token:
-        user_input = UserInput(conan_api.config.get("core:non_interactive"))
-        ConanOutput().write(f"Please enter a token for the {args.name} provider: ")
-        token = user_input.get_password()
-    else:
-        token = args.token
-
-    provider = conan_api.audit.get_provider(args.name)
-    conan_api.audit.auth_provider(provider, token)
-
-
-def _provider_list_formatter(providers):
+def text_provider_formatter(providers):
     for provider in providers:
-        cli_out_write(f"{provider.name} - {provider.url}")
+        if provider:
+            cli_out_write(f"{provider.name} - {provider.url}")
 
-@conan_subcommand(formatters={"text": _provider_list_formatter, "json": json_vuln_formatter})
-def audit_provider_list(conan_api, parser, subparser, *args):
-    """
-    List all providers
-    """
-    parser.parse_args(*args)
-    providers = conan_api.audit.get_providers()
-    return providers
+def json_provider_formatter(providers):
+    ret = []
+    for provider in providers:
+        if provider:
+            ret.append({"name": provider.name, "url": provider.url})
+    cli_out_write(json.dumps(ret, indent=4))
 
+
+@conan_subcommand(formatters={"text": text_provider_formatter, "json": json_provider_formatter})
+def audit_provider(conan_api, parser, subparser, *args):
+    """ Manage providers for the audit command """
+    action = subparser.add_mutually_exclusive_group(required=True)
+    action.add_argument("--add", action="store_true", help="Add a provider")
+    action.add_argument("--list", action="store_true", help="List all providers")
+    action.add_argument("--auth", action="store_true", help="Authenticate on a provider")
+
+    subparser.add_argument("--name", help="Provider name")
+    subparser.add_argument("--url", help="Provider URL")
+    subparser.add_argument("--type", help="Provider type", choices=["catalog", "private"])
+    subparser.add_argument("--token", help="Provider token")
+    args = parser.parse_args(*args)
+
+    if args.add:
+        if not args.name or not args.url or not args.type:
+            raise ConanException("Name, URL and type are required to add a provider")
+        if not args.token:
+            user_input = UserInput(conan_api.config.get("core:non_interactive"))
+            ConanOutput().write(f"Please enter a token for {args.name} the provider: ")
+            token = user_input.get_password()
+        else:
+            token = args.token
+
+        conan_api.audit.add_provider(args.name, args.url, args.type, token)
+        return []
+    elif args.list:
+        providers = conan_api.audit.get_providers()
+        return providers
+    elif args.auth:
+        if not args.name:
+            raise ConanException("Name is required to authenticate on a provider")
+        if not args.token:
+            user_input = UserInput(conan_api.config.get("core:non_interactive"))
+            ConanOutput().write(f"Please enter a token for {args.name} the provider: ")
+            token = user_input.get_password()
+        else:
+            token = args.token
+
+        provider = conan_api.audit.get_provider(args.name)
+        conan_api.audit.auth_provider(provider, token)
+        return [provider]
 
 @conan_command(group="Security")
 def audit(conan_api, parser, *args):
