@@ -194,15 +194,16 @@ class ConfigAPI:
 
     def clean(self):
         contents = os.listdir(self.home())
+        packages_folder = self.global_conf.get("core.cache:storage_path") or os.path.join(self.home(), "p")
         for content in contents:
-            # keep packages
-            if content not in ("p", "version.txt"):
-                content_path = os.path.join(self.home(), content)
-                ConanOutput().debug(f"Removing {content_path}")
-                if os.path.isdir(content_path):
-                    rmdir(content_path)
-                else:
-                    remove(content_path)
+            content_path = os.path.join(self.home(), content)
+            if content_path == packages_folder or content == "version.txt":
+                continue
+            ConanOutput().debug(f"Removing {content_path}")
+            if os.path.isdir(content_path):
+                rmdir(content_path)
+            else:
+                remove(content_path)
         # CHECK: This also generates a remotes.json that is not there after a conan profile show?
         self.conan_api.migrate()
 

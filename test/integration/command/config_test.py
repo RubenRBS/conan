@@ -2,7 +2,10 @@ import json
 import os
 import textwrap
 
+import pytest
+
 from conan.api.conan_api import ConanAPI
+from conan.test.assets.genconanfile import GenConanfile
 from conans.model.conf import BUILT_IN_CONFS
 from conan.test.utils.test_files import temp_folder
 from conan.test.utils.tools import TestClient
@@ -203,14 +206,25 @@ def test_config_show():
     assert "zlib/*:user.myothercategory:foo" in tc.out
 
 
-def test_config_clean():
+@pytest.mark.parametrize("storage_path", [None, "p", "../foo"])
+def test_config_clean(storage_path):
     tc = TestClient(light=True)
-    tc.run("profile detect --name=foo")
-    tc.run("remote add bar http://fakeurl")
-    tc.save_home({"global.conf": "core.upload:retry=7\n",
+    absolut_storage_path = os.path.abspath(os.path.join(tc.current_folder, storage_path)) if storage_path else os.path.join(tc.cache_folder, "p")
+
+    storage = f"core.cache:storage_path={storage_path}" if storage_path else ""
+    tc.save_home({"global.conf": f"core.upload:retry=7\n{storage}",
                   "extensions/compatibility/mycomp.py": "",
                   "extensions/commands/cmd_foo.py": "",
                   })
+
+    tc.run("profile detect --name=foo")
+    tc.run("remote add bar http://fakeurl")
+
+    tc.save({"conanfile.py": GenConanfile("pkg", "0.1")})
+    tc.run("create .")
+
+    assert os.path.exists(absolut_storage_path)
+
     tc.run("config clean")
     tc.run("profile list")
     assert "foo" not in tc.out
@@ -219,6 +233,7 @@ def test_config_clean():
     tc.run("config show core.upload:retry")
     assert "7" not in tc.out
     assert not os.path.exists(os.path.join(tc.cache_folder, "extensions"))
+    assert os.path.exists(absolut_storage_path)
 
 
 def test_config_reinit():
