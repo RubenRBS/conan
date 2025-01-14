@@ -40,16 +40,12 @@ class AuditAPI:
         Scan a given recipe for vulnerabilities in its dependencies.
         """
         refs = list(set(f"{node.ref.name}/{node.ref.version}" for node in deps_graph.nodes[1:]))
-
-        # ConanOutput().info(f"Requesting vulnerability information for: {', '.join(refs)}")
-
         return provider.get_cves(refs)
 
     def list(self, reference, provider):
         """
         List the vulnerabilities of the given reference.
         """
-        # ConanOutput().info(f"Requesting vulnerability information for: {reference}")
         ref = RecipeReference.loads(reference)
         ref.validate_ref()
         return provider.get_cves([reference])
@@ -58,19 +54,9 @@ class AuditAPI:
         """
         Get the provider by name.
         """
-        if not os.path.exists(self._providers_path):
-            default_providers = {
-                CONAN_CENTER_CATALOG_NAME: {
-                    "url": "https://conancenter-stg-api.jfrog.team/api/v1/query",
-                    "type": "conan-center-proxy"
-                }
-            }
-            save(self._providers_path, json.dumps(default_providers, indent=4))
-
         # TODO: More work remains to be done here, hardcoded for now for testing
-        providers = json.loads(load(self._providers_path))
+        providers = _load_providers(self._providers_path)
         if provider_name not in providers:
-            # TODO: Should this raise instead?
             raise ConanException(f"Provider '{provider_name}' not found")
 
         provider_data = providers[provider_name]
@@ -83,13 +69,13 @@ class AuditAPI:
         """
         Add a provider.
         """
-        if self.get_provider(name):
+        providers = _load_providers(self._providers_path)
+        if name in providers:
             raise ConanException(f"Provider '{name}' already exists")
 
         if provider_type not in self._provider_cls:
             raise ConanException(f"Provider type '{provider_type}' not found")
 
-        providers = json.loads(load(self._providers_path))
         # TODO: Validate data
         providers[name] = {
             "name": name,
@@ -99,7 +85,7 @@ class AuditAPI:
         if token:
             # TODO: Store the token in a different file/place
             providers[name]["token"] = token
-        save(self._providers_path, json.dumps(providers, indent=4))
+        _save_providers(self._providers_path, providers)
 
 
     # TODO: Should this be a provider, or just its name?
@@ -112,14 +98,27 @@ class AuditAPI:
         if not provider:
             raise ConanException("Provider not found")
 
-        providers = json.loads(load(self._providers_path))
+        providers = _load_providers(self._providers_path)
 
         assert provider.name in providers
         # TODO: Store this somewhere else
         providers[provider.name]["token"] = token
-        save(self._providers_path, json.dumps(providers, indent=4))
+        _save_providers(self._providers_path, providers)
 
 
+def _load_providers(providers_path):
+    if not os.path.exists(providers_path):
+        default_providers = {
+            CONAN_CENTER_CATALOG_NAME: {
+                "url": "https://conancenter-stg-api.jfrog.team/api/v1/query",
+                "type": "conan-center-proxy"
+            }
+        }
+        save(providers_path, json.dumps(default_providers, indent=4))
+    return json.loads(load(providers_path))
+
+def _save_providers(providers_path, providers):
+    save(providers_path, json.dumps(providers, indent=4))
 
 # TODO: Think if providers are classes that implement get_cves,
 #  or just a function and the discrimination is done in the AuditAPI
@@ -162,6 +161,7 @@ class _ConanProxyProvider:
                 ConanOutput().error(f"Authentication error: {response.status_code}")
                 break
             elif response.status_code == 429:
+
                 msg = "Rate limit exceeded. Results may be incomplete."
                 ConanOutput().warning(msg)
                 break
