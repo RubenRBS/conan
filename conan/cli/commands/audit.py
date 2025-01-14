@@ -52,13 +52,13 @@ def text_vuln_formatter(list_of_data_json):
                         cli_out_write(f"    {advisory['name']}")
                         if advisory["name"].startswith("JFSA"):
                             # JFrog Security Advisory, give more context
-                            if advisory["fullDescription"]:
+                            if advisory.get("fullDescription"):
                                 cli_out_write(f"      - {advisory['fullDescription']}")
-                            elif advisory["shortDescription"]:
+                            elif advisory.get("shortDescription"):
                                 cli_out_write(f"      - {advisory['shortDescription']}")
-                            if advisory["severity"]:
+                            if advisory.get("severity"):
                                 cli_out_write(f"      - Severity: {advisory['severity']}")
-                            if advisory["url"]:
+                            if advisory.get("url"):
                                 cli_out_write(f"      - More info at {advisory['url']}")
                             cli_out_write("      Advisory provided by JFrog Security")
         else:
@@ -145,7 +145,7 @@ def audit_list(conan_api: ConanAPI, parser, subparser, *args):
 
 
 @conan_subcommand()
-def audit_add_provider(conan_api, parser, subparser, *args):
+def audit_provider_add(conan_api, parser, subparser, *args):
     """
     Add a provider.
     """
@@ -166,7 +166,7 @@ def audit_add_provider(conan_api, parser, subparser, *args):
 
 
 @conan_subcommand()
-def audit_auth_provider(conan_api, parser, subparser, *args):
+def audit_provider_auth(conan_api, parser, subparser, *args):
     """
     Authenticate on a provider
     """
@@ -182,6 +182,20 @@ def audit_auth_provider(conan_api, parser, subparser, *args):
 
     provider = conan_api.audit.get_provider(args.name)
     conan_api.audit.auth_provider(provider, token)
+
+
+def _provider_list_formatter(providers):
+    for provider in providers:
+        cli_out_write(f"{provider.name} - {provider.url}")
+
+@conan_subcommand(formatters={"text": _provider_list_formatter, "json": json_vuln_formatter})
+def audit_provider_list(conan_api, parser, subparser, *args):
+    """
+    List all providers
+    """
+    parser.parse_args(*args)
+    providers = conan_api.audit.get_providers()
+    return providers
 
 
 @conan_command(group="Security")

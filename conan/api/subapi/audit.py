@@ -64,6 +64,17 @@ class AuditAPI:
 
         return provider_cls(provider_name, provider_data)
 
+    def get_providers(self):
+        """
+        Get all available providers.
+        """
+        providers = _load_providers(self._providers_path)
+        result = []
+        for name, provider_data in providers.items():
+            provider_cls = self._provider_cls.get(provider_data["type"])
+            result.append(provider_cls(name, provider_data))
+        return result
+
     # TODO: See if token should be optional
     def add_provider(self, name, url, provider_type, token=None):
         """
