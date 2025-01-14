@@ -23,7 +23,7 @@ from conan.api.subapi.upload import UploadAPI
 from conans.client.migrations import ClientMigrator
 from conan.errors import ConanException
 from conan.internal.paths import get_conan_user_home
-from conans.model.version_range import validate_conan_version
+from conan.internal.model.version_range import validate_conan_version
 
 
 class ConanAPI:
@@ -42,9 +42,10 @@ class ConanAPI:
         migrator = ClientMigrator(self.cache_folder, conan_version)
         migrator.migrate()
 
-        self.command = CommandAPI(self)
+        self.config = ConfigAPI(self)
         self.remotes = RemotesAPI(self)
-        # Search recipes by wildcard and packages filtering by configuracion
+        self.command = CommandAPI(self)
+        # Search recipes by wildcard and packages filtering by configuration
         self.search = SearchAPI(self)
         # Get latest refs and list refs of recipes and packages
         self.list = ListAPI(self)
@@ -53,7 +54,6 @@ class ConanAPI:
         self.graph = GraphAPI(self)
         self.export = ExportAPI(self)
         self.remove = RemoveAPI(self)
-        self.config = ConfigAPI(self)
         self.new = NewAPI(self)
         self.upload = UploadAPI(self)
         self.download = DownloadAPI(self)
