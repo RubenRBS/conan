@@ -71,7 +71,7 @@ class AuditAPI:
         providers = json.loads(load(self._providers_path))
         if provider_name not in providers:
             # TODO: Should this raise instead?
-            return None
+            raise ConanException(f"Provider '{provider_name}' not found")
 
         provider_data = providers[provider_name]
         provider_cls = self._provider_cls.get(provider_data["type"])
@@ -131,9 +131,18 @@ class _ConanProxyProvider:
         self._session = requests.Session()
 
     def get_cves(self, refs):
-        headers = {"Content-Type": "application/json", "Accept": "application/json"}
-        if self.token:
-            headers["Authorization"] = f"Bearer {self.token}"
+        if not self.token:
+            raise ConanException(textwrap.dedent(f"""
+                You dont have a token for the service, go register here https://conancenter-stg-api.jfrog.team/, and once you have, run:
+
+                conan audit auth-provider {CONAN_CENTER_CATALOG_NAME} –-token=<mytoken>
+
+                And rerun this command
+            """))
+
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json",
+                   "Authorization": f"Bearer {self.token}"}
 
         result = {"data": {}}
 
@@ -166,7 +175,6 @@ class _ConanProxyProvider:
             else:
                 ConanOutput().error(f"Failed to get vulnerabilities for {ref}: {response.status_code}")
                 ConanOutput().error(response.text)
-        # TODO: Normalize this result so that every provider returns the same format
         return result
 
 class _PrivateProvider:
