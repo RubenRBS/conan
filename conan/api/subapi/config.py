@@ -204,6 +204,7 @@ class ConfigAPI:
                 rmdir(content_path)
             else:
                 remove(content_path)
+        self.conan_api.reinit()
         # CHECK: This also generates a remotes.json that is not there after a conan profile show?
         self.conan_api.migrate()
 
