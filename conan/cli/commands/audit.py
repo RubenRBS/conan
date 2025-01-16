@@ -106,10 +106,20 @@ def text_vuln_formatter(data_json):
     for line in summary_lines:
         cli_out_write(f"- {line}", fg=Color.BRIGHT_WHITE)
 
-    cli_out_write(
-        "\nVulnerability information provided by JFrog (https://jfrog.com/help/r/jfrog-catalog/jfrog-catalog)\n",
-        fg=Color.BRIGHT_WHITE
+    box_content = (
+        "Vulnerability information provided by JFrog. Please check ",
+        "https://jfrog.com/advanced-security/ for more information."
     )
+    max_length = max(len(line) for line in box_content)
+    border = "*" * (max_length + 4)
+
+    cli_out_write("", fg=Color.BRIGHT_GREEN)
+    cli_out_write(border, fg=Color.WHITE)
+    for line in box_content:
+        cli_out_write(f"* ", fg=Color.WHITE, endline="")
+        cli_out_write(f"{line.ljust(max_length)}", fg=Color.BRIGHT_GREEN, endline="")
+        cli_out_write(" *", fg=Color.WHITE)
+    cli_out_write(border, fg=Color.WHITE)
 
 def json_vuln_formatter(data):
     cli_out_write(json.dumps(data, indent=4))
