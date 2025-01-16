@@ -22,61 +22,94 @@ def _add_provider_arg(subparser):
     subparser.add_argument("-p", "--provider", help="Provider to use for scanning")
 
 
-def text_vuln_formatter(list_of_data_json):
-    total_vulnerabilities = 0
-    packages_without_vulns = []
-    # TODO: "errors" in list_of_data_json should be handled
-    if not list_of_data_json \
-            or "errors" in list_of_data_json \
-            or "data" not in list_of_data_json \
-            or list_of_data_json["data"] is None:
-        # Specifically, show the error here maybe?
-        cli_out_write("No vulnerabilities found")
+def text_vuln_formatter(data_json):
+    from conan.api.output import cli_out_write, Color
+
+    severity_colors = {
+        "Critical": Color.BRIGHT_RED,
+        "High": Color.RED,
+        "Medium": Color.BRIGHT_YELLOW,
+        "Low": Color.BRIGHT_CYAN
+    }
+    severity_order = {
+        "Critical": 4,
+        "High": 3,
+        "Medium": 2,
+        "Low": 1
+    }
+
+    def wrap_and_indent(txt, limit=80, indent=2):
+        txt = txt.replace("\n", " ").strip()
+        if len(txt) <= limit:
+            return " " * indent + txt
+        lines = []
+        while len(txt) > limit:
+            split_index = txt.rfind(" ", 0, limit)
+            if split_index == -1:
+                split_index = limit
+            lines.append(" " * indent + txt[:split_index].strip())
+            txt = txt[split_index:].strip()
+        lines.append(" " * indent + txt)
+        return "\n".join(lines)
+
+    if not data_json or "data" not in data_json or not data_json["data"]:
+        cli_out_write("No vulnerabilities found.\n", fg=Color.BRIGHT_GREEN)
         return
 
-    for library_key, library_data in list_of_data_json["data"].items():
-        vulnerabilities = library_data["vulnerabilities"]["edges"]
-        ref = f"{library_key}/{library_data['version']}"
-        if vulnerabilities:
-            # Accumulate total vulnerabilities and add them to the table
-            cli_out_write(f"{ref}: {len(vulnerabilities)} vulnerabilities\n")
-            total_vulnerabilities += len(vulnerabilities)
-            sorted_vulns = sorted(vulnerabilities, key=lambda x: x["node"]["name"])
-            for vuln in sorted_vulns:
-                node = vuln["node"]
-                reference_url = node["references"][0] if node["references"] else "#"
-                cli_out_write(f"  {node['name']} - {node['description']} - {reference_url}\n")
+    total_vulns = 0
+    summary_lines = []
 
-                if "advisories" in node:
-                    for advisory in node["advisories"]:
-                        cli_out_write(f"    {advisory['name']}")
-                        if advisory["name"].startswith("JFSA"):
-                            # JFrog Security Advisory, give more context
-                            if advisory.get("fullDescription"):
-                                cli_out_write(f"      - {advisory['fullDescription']}")
-                            elif advisory.get("shortDescription"):
-                                cli_out_write(f"      - {advisory['shortDescription']}")
-                            if advisory.get("severity"):
-                                cli_out_write(f"      - Severity: {advisory['severity']}")
-                            if advisory.get("url"):
-                                cli_out_write(f"      - More info at {advisory['url']}")
-                            cli_out_write("      Advisory provided by JFrog Security")
-        else:
-            # Add package name to the list of packages without vulnerabilities
-            packages_without_vulns.append(ref)
+    for pkg_name, pkg_info in data_json["data"].items():
+        ref = f"{pkg_name}/{pkg_info['version']}"
+        edges = pkg_info.get("vulnerabilities", {}).get("edges", [])
+        count = len(edges)
 
-    # TODO: ConanOutput()?
+        border_line = "*" * (len(ref) + 4)
+        cli_out_write("\n" + border_line, fg=Color.BRIGHT_WHITE)
+        cli_out_write(f"* {ref} *", fg=Color.BRIGHT_WHITE)
+        cli_out_write(border_line, fg=Color.BRIGHT_WHITE)
+
+        if not count:
+            cli_out_write("\nNo vulnerabilities found.\n", fg=Color.BRIGHT_GREEN)
+            continue
+
+        total_vulns += count
+        summary_lines.append(f"{ref} {count} {'vulnerability' if count == 1 else 'vulnerabilities'} found")
+        cli_out_write(f"\n{count} {'vulnerability' if count == 1 else 'vulnerabilities'} found:\n", fg=Color.BRIGHT_YELLOW)
+
+        sorted_vulns = sorted(edges, key=lambda v: -severity_order.get(v["node"].get("severity", "Medium"), 2))
+
+        for vuln in sorted_vulns:
+            node = vuln["node"]
+            name = node["name"]
+            sev = node.get("severity", "Medium")
+            sev_color = severity_colors.get(sev, Color.BRIGHT_YELLOW)
+            score = node.get("cvss", {}).get("preferredBaseScore")
+            score_txt = f", CVSS: {score}" if score else ""
+            desc = node.get("description", "")
+            desc = (desc[:240] + "...") if len(desc) > 240 else desc
+            desc_wrapped = wrap_and_indent(desc)
+
+            cli_out_write(f"- {name}", fg=Color.BRIGHT_WHITE, endline="")
+            cli_out_write(f" (Severity: {sev}{score_txt})", fg=sev_color)
+            cli_out_write("\n" + desc_wrapped)
+
+            references = node.get("references")
+            if references:
+                cli_out_write(f"  url: {references[0]}", fg=Color.BRIGHT_BLUE)
+            cli_out_write("")
+
+    color_for_total = Color.BRIGHT_RED if total_vulns else Color.BRIGHT_GREEN
+    cli_out_write(f"Total vulnerabilities found: {total_vulns}\n", fg=color_for_total)
+
+    cli_out_write("\nSummary:\n", fg=Color.BRIGHT_WHITE)
+    for line in summary_lines:
+        cli_out_write(f"- {line}", fg=Color.BRIGHT_WHITE)
+
     cli_out_write(
-        f"Total vulnerabilities found: {total_vulnerabilities}"
+        "\nVulnerability information provided by JFrog (https://jfrog.com/help/r/jfrog-catalog/jfrog-catalog)\n",
+        fg=Color.BRIGHT_WHITE
     )
-
-    # Print the list of packages without vulnerabilities
-    if packages_without_vulns:
-        cli_out_write(
-            "No vulnerabilities found in: " + ", ".join(packages_without_vulns)
-        )
-
-    cli_out_write("Vulnerability information provided by [link=https://jfrog.com/help/r/jfrog-catalog/jfrog-catalog]JFrog Catalog[/]")
 
 def json_vuln_formatter(data):
     cli_out_write(json.dumps(data, indent=4))
