@@ -117,12 +117,18 @@ class ConfigAPI:
         configuration defined with the new syntax as in profiles, this config will be composed
         to the profile ones and passed to the conanfiles.conf, which can be passed to collaborators
         """
+        # Lazy loading
         if self._new_config is None:
-            cache_folder = self.conan_api.cache_folder
-            self._new_config = self.load_config(cache_folder)
-            if self._cli_core_confs is not None:
-                self._new_config.update_conf_definition(self._cli_core_confs)
+            self._new_config = ConfDefinition()
+            self._populate_global_conf()
         return self._new_config
+
+    def _populate_global_conf(self):
+        cache_folder = self.conan_api.cache_folder
+        new_config = self.load_config(cache_folder)
+        self._new_config.update_conf_definition(new_config)
+        if self._cli_core_confs is not None:
+            self._new_config.update_conf_definition(self._cli_core_confs)
 
     @staticmethod
     def load_config(home_folder):
@@ -226,4 +232,6 @@ class ConfigAPI:
         self.conan_api.reinit()
 
     def reinit(self):
-        self._new_config = None
+        if self._new_config is not None:
+            self._new_config.clear()
+            self._populate_global_conf()

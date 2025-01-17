@@ -705,3 +705,6 @@ class ConfDefinition:
     def validate(self):
         for conf in self._pattern_confs.values():
             conf.validate()
+
+    def clear(self):
+        self._pattern_confs.clear()
