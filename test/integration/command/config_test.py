@@ -249,10 +249,7 @@ def test_config_reinit():
     assert config_api.global_conf.get("core.upload:retry", check_type=int) != 7
 
     conan_api.config.install(global_conf_folder, verify_ssl=False)
-    # No effect yet, we haven't reinitialized the API after the config installation
-    assert config_api.global_conf.get("core.upload:retry", check_type=int) != 7
-
-    conan_api.reinit()
+    # Already has an effect, the config installation reinitializes the config
     assert config_api.global_conf.get("core.upload:retry", check_type=int) == 7
 
 

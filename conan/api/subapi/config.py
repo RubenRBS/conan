@@ -28,6 +28,7 @@ class ConfigAPI:
     def __init__(self, conan_api):
         self.conan_api = conan_api
         self._new_config = None
+        self._cli_core_confs = None
 
     def home(self):
         return self.conan_api.cache_folder
@@ -119,6 +120,8 @@ class ConfigAPI:
         if self._new_config is None:
             cache_folder = self.conan_api.cache_folder
             self._new_config = self.load_config(cache_folder)
+            if self._cli_core_confs is not None:
+                self._new_config.update_conf_definition(self._cli_core_confs)
         return self._new_config
 
     @staticmethod
@@ -210,7 +213,7 @@ class ConfigAPI:
         # CHECK: This also generates a remotes.json that is not there after a conan profile show?
         self.conan_api.migrate()
 
-    def update_global_conf(self, core_confs):
+    def set_core_confs(self, core_confs):
         from conan.internal.model.conf import ConfDefinition
         confs = ConfDefinition()
         for c in core_confs:
@@ -218,10 +221,9 @@ class ConfigAPI:
                 raise ConanException(f"Only core. values are allowed in --core-conf. Got {c}")
         confs.loads("\n".join(core_confs))
         confs.validate()
-        self.global_conf.update_conf_definition(confs)
+        self._cli_core_confs = confs
         # Last but not least, apply the new configuration
-        self.conan_api.reinit(keep_conf=True)
+        self.conan_api.reinit()
 
-    def reinit(self, keep_conf=False):
-        if not keep_conf:
-            self._new_config = None
+    def reinit(self):
+        self._new_config = None

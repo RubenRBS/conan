@@ -125,7 +125,7 @@ class ConanArgumentParser(argparse.ArgumentParser):
             ConanOutput().error("The --lockfile-packages arg is private and shouldn't be used")
         global_conf = self._conan_api.config.global_conf
         if args.core_conf:
-            self._conan_api.config.update_global_conf(args.core_conf)
+            self._conan_api.config.set_core_confs(args.core_conf)
 
         # TODO: This might be even better moved to the ConanAPI so users without doing custom
         #  commands can benefit from it
