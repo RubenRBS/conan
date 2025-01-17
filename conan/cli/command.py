@@ -134,6 +134,8 @@ class ConanArgumentParser(argparse.ArgumentParser):
             confs.loads("\n".join(args.core_conf))
             confs.validate()
             global_conf.update_conf_definition(confs)
+            # Last but not least, apply the new configuration
+            self._conan_api.reinit()
 
         # TODO: This might be even better moved to the ConanAPI so users without doing custom
         #  commands can benefit from it
