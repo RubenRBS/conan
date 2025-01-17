@@ -220,7 +220,6 @@ class ConfigAPI:
         self.conan_api.migrate()
 
     def set_core_confs(self, core_confs):
-        from conan.internal.model.conf import ConfDefinition
         confs = ConfDefinition()
         for c in core_confs:
             if not CORE_CONF_PATTERN.match(c):
