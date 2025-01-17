@@ -16,7 +16,7 @@ from conans.client.graph.graph import CONTEXT_HOST, RECIPE_VIRTUAL, Node
 from conans.client.graph.graph_builder import DepsGraphBuilder
 from conans.client.graph.profile_node_definer import consumer_definer
 from conan.errors import ConanException
-from conan.internal.model.conf import ConfDefinition, BUILT_IN_CONFS
+from conan.internal.model.conf import ConfDefinition, BUILT_IN_CONFS, CORE_CONF_PATTERN
 from conan.internal.model.pkg_type import PackageType
 from conan.internal.model.recipe_ref import RecipeReference
 from conan.internal.model.settings import Settings
@@ -40,6 +40,7 @@ class ConfigAPI:
         requester = self.conan_api.remotes.requester
         configuration_install(cache_folder, requester, path_or_url, verify_ssl, config_type=config_type, args=args,
                               source_folder=source_folder, target_folder=target_folder)
+        self.conan_api.reinit()
 
     def install_pkg(self, ref, lockfile=None, force=False, remotes=None, profile=None):
         ConanOutput().warning("The 'conan config install-pkg' is experimental",
@@ -100,6 +101,7 @@ class ConfigAPI:
         config_versions = {ref.split("/", 1)[0]: ref for ref in config_versions}
         config_versions[pkg.pref.ref.name] = pkg.pref.repr_notime()
         save(config_version_file, json.dumps({"config_version": list(config_versions.values())}))
+        self.conan_api.reinit()
         return pkg.pref
 
     def get(self, name, default=None, check_type=None):
@@ -208,5 +210,18 @@ class ConfigAPI:
         # CHECK: This also generates a remotes.json that is not there after a conan profile show?
         self.conan_api.migrate()
 
-    def reinit(self):
-        self._new_config = None
+    def update_global_conf(self, core_confs):
+        from conan.internal.model.conf import ConfDefinition
+        confs = ConfDefinition()
+        for c in core_confs:
+            if not CORE_CONF_PATTERN.match(c):
+                raise ConanException(f"Only core. values are allowed in --core-conf. Got {c}")
+        confs.loads("\n".join(core_confs))
+        confs.validate()
+        self.global_conf.update_conf_definition(confs)
+        # Last but not least, apply the new configuration
+        self.conan_api.reinit(keep_conf=True)
+
+    def reinit(self, keep_conf=False):
+        if not keep_conf:
+            self._new_config = None

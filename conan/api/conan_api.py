@@ -60,8 +60,8 @@ class ConanAPI:
 
         _check_conan_version(self)
 
-    def reinit(self):
-        self.config.reinit()
+    def reinit(self, keep_conf=False):
+        self.config.reinit(keep_conf)
         self.remotes.reinit()
         self.local.reinit()
 
